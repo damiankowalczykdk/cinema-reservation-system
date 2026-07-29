@@ -1,0 +1,25 @@
+[project]
+name = "gateway"
+version = "0.1.0"
+description = ""
+authors = [
+    {name = "Damian",email = "damiankowalczyk3688@gmail.com"}
+]
+license = "MIT"
+requires-python = ">=3.13"
+dependencies = [
+    "fastapi[standard] (>=0.139.2,<0.140.0)",
+    "pydantic-settings (>=2.14.2,<3.0.0)",
+    "itsdangerous (>=2.2.0,<3.0.0)",
+    "pyjwt[crypto] (>=2.13.0,<3.0.0)"
+]
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.3.0"
+mypy = "^2.3.0"
+
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
+
