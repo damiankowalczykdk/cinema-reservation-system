@@ -1,0 +1,61 @@
+# --- Python ---
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.pkl
+*.log
+
+# --- Virtual environments ---
+.env
+.venv/
+env/
+venv/
+
+# --- IDE ---
+.vscode/
+.idea/
+*.iml
+
+# --- System files ---
+.DS_Store
+Thumbs.db
+
+# --- Excel / data / outputs ---
+*.xlsx
+*.xls
+*.csv
+*.db
+*.sqlite3
+
+# --- Coverage & testing ---
+.coverage
+htmlcov/
+.coverage.*
+.cache/
+pytest_cache/
+.tox/
+.mypy_cache/
+.pytest_cache/
+
+# --- Build ---
+build/
+dist/
+*.egg-info/
+
+# --- Docker ---
+# Ignore all named volumes and runtime data
+docker-data/
+*.pid
+
+# --- Custom secrets ---
+# Ignore any custom environment config files
+.env.local
+.env.production
+.env.development
+
+# --- Reports or temp files ---
+*.out
+*.bak
+*.tmp
+*.swp
