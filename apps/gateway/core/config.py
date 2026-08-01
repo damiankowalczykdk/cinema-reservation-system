@@ -12,6 +12,7 @@ class Auth0Settings(BaseSettings):
     secret_key: str
 
     http_timeout: int
+    cinema_service_url: str
 
     model_config = SettingsConfigDict(
         env_file=".env",
