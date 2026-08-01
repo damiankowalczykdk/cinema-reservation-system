@@ -1,0 +1,22 @@
+.container {
+  max-width: 480px;
+  margin: 40px auto;
+  font-family: sans-serif;
+  text-align: left;
+}
+
+.error {
+  color: red;
+}
+
+button {
+  margin-right: 8px;
+}
+
+pre {
+  background: #f4f4f4;
+  color: #222;
+  padding: 12px;
+  border-radius: 6px;
+  overflow-x: auto;
+}
