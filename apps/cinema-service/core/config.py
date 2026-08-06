@@ -20,4 +20,4 @@ class DatabaseSettings(BaseSettings):
         frozen=True
     )
 
-database_settings = DatabaseSettings()
+database_settings = DatabaseSettings() #type: ignore
