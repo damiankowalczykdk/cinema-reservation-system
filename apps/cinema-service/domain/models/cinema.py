@@ -13,5 +13,8 @@ class Cinema(Base):
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         default=lambda: datetime.now(tz=timezone.utc),
-        onupdate=datetime.now(tz=timezone.utc)
+        onupdate=lambda: datetime.now(tz=timezone.utc)
     )
+
+    def __repr__(self) -> str:
+        return f"<Cinema: {self.name} city: {self.city} address: {self.address} >"
