@@ -10,12 +10,13 @@ requires-python = ">=3.13"
 dependencies = [
     "fastapi[standard] (>=0.139.2,<0.140.0)",
     "pydantic-settings (>=2.14.2,<3.0.0)",
+    "sqlalchemy  (>=2.0.51, <3.0.0)",
+    "asyncpg (>=0.30.0,<0.31.0)"
 ]
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.3.0"
 mypy = "^2.3.0"
-sqlalchemy = "^2.0.51"
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]
