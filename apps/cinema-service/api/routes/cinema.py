@@ -19,7 +19,7 @@ async def get_cinema_by_id(cinema_id: int, service: CinemaServiceDep) -> Cinema:
 async def get_cinema_by_name(name: str, service: CinemaServiceDep) -> Cinema:
     return await service.get_cinema_by_name(name)
 
-@router.patch("/{cinema_id}")
+@router.patch("/{cinema_id}", response_model=CinemaRead, status_code=status.HTTP_200_OK, summary="Update Cinema")
 async def update_cinema(cinema_id: int, payload: UpdateCinema, service: CinemaServiceDep) -> Cinema:
     return await service.update_cinema(cinema_id, payload)
 
