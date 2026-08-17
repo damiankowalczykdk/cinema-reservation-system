@@ -18,3 +18,10 @@ class Cinema(Base):
 
     def __repr__(self) -> str:
         return f"<Cinema: {self.name} city: {self.city} address: {self.address} >"
+
+
+    def update(self, update_data: dict) -> None:
+        for key, value in update_data.items():
+            if hasattr(self, key) and value is not None:
+                setattr(self, key, value)
+
