@@ -10,7 +10,7 @@ class CinemaService:
 
     async def create_cinema(self, create_cinema: CreateCinema) -> Cinema:
 
-        if await self.repository.get_by_name(create_cinema.name):
+        if await self.repository.get_by_address(create_cinema.address):
             raise ConflictException("Cinema already exists")
 
         cinema = Cinema(
