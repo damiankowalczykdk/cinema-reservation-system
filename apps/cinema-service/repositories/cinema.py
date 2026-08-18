@@ -13,3 +13,8 @@ class CinemaRepository(GenericRepository[Cinema]):
         result = await self.session.execute(stmt)
         return result.scalar_one_or_none()
 
+    async def get_by_address(self, address: str) -> Cinema | None:
+        stmt = select(Cinema).where(Cinema.address == address)
+        result = await self.session.execute(stmt)
+        return result.scalar_one_or_none()
+
