@@ -1,3 +1,4 @@
+from core.exceptions import ConflictException, NotFoundException
 from domain.models.cinema import Cinema
 from domain.schemas.cinema import CreateCinema, UpdateCinema
 from repositories.cinema import CinemaRepository
@@ -10,7 +11,7 @@ class CinemaService:
     async def create_cinema(self, create_cinema: CreateCinema) -> Cinema:
 
         if await self.repository.get_by_name(create_cinema.name):
-            raise ValueError("Cinema already exists")
+            raise ConflictException("Cinema already exists")
 
         cinema = Cinema(
             name=create_cinema.name,
@@ -25,21 +26,21 @@ class CinemaService:
 
         cinema = await self.repository.get_by_id(cinema_id)
         if not cinema:
-            raise ValueError("Cinema does not exist")
+            raise NotFoundException("Cinema does not exist")
         return cinema
 
     async def get_cinema_by_name(self, name: str) -> Cinema:
 
         cinema = await self.repository.get_by_name(name)
         if not cinema:
-            raise ValueError("Cinema does not exist")
+            raise NotFoundException("Cinema does not exist")
         return cinema
 
     async def update_cinema(self,cinema_id: int,  update_cinema: UpdateCinema) -> Cinema:
 
         cinema = await self.repository.get_by_id(cinema_id)
         if not cinema:
-            raise ValueError("Cinema does not exist")
+            raise NotFoundException("Cinema does not exist")
 
         cinema.update(update_data={
             "name": update_cinema.name,
@@ -52,7 +53,7 @@ class CinemaService:
     async def delete_cinema_by_id(self, cinema_id: int) -> None:
         cinema = await self.repository.get_by_id(cinema_id)
         if not cinema:
-            raise ValueError("Cinema does not exist")
+            raise NotFoundException("Cinema does not exist")
         await self.repository.delete_by_id(cinema_id)
 
 
