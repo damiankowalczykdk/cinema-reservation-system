@@ -11,7 +11,7 @@ class Base(DeclarativeBase):
 engine = create_async_engine(database_settings.POSTGRES_URI)
 async_session = async_sessionmaker(engine, expire_on_commit=False)
 
-async def get_db() -> AsyncGenerator[AsyncSession, None]:
+async def get_db() -> AsyncGenerator[AsyncSession, None]: # pragma: no cover
     async with async_session() as session:
         try:
             yield session
