@@ -1,3 +1,5 @@
+from typing import Sequence
+
 from fastapi import APIRouter, status
 from api.dependencies import CinemaServiceDep
 from domain.models.cinema import Cinema
@@ -15,8 +17,8 @@ async def get_cinema_by_id(cinema_id: int, service: CinemaServiceDep) -> Cinema:
     return await service.get_cinema_by_id(cinema_id)
 
 
-@router.get("/", response_model=CinemaRead, status_code=status.HTTP_200_OK, summary="Cinema")
-async def get_cinema_by_name(name: str, service: CinemaServiceDep) -> Cinema:
+@router.get("/", response_model=list[CinemaRead], status_code=status.HTTP_200_OK, summary="Cinema")
+async def get_cinema_by_name(name: str, service: CinemaServiceDep) -> Sequence[Cinema]:
     return await service.get_cinema_by_name(name)
 
 @router.patch("/{cinema_id}", response_model=CinemaRead, status_code=status.HTTP_200_OK, summary="Update Cinema")

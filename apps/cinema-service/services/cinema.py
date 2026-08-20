@@ -1,3 +1,5 @@
+from typing import Sequence
+
 from core.exceptions import ConflictException, NotFoundException
 from domain.models.cinema import Cinema
 from domain.schemas.cinema import CreateCinema, UpdateCinema
@@ -29,12 +31,12 @@ class CinemaService:
             raise NotFoundException("Cinema does not exist")
         return cinema
 
-    async def get_cinema_by_name(self, name: str) -> Cinema:
+    async def get_cinema_by_name(self, name: str) -> Sequence[Cinema]:
 
-        cinema = await self.repository.get_by_name(name)
-        if not cinema:
+        cinemas = await self.repository.get_by_name(name)
+        if not cinemas:
             raise NotFoundException("Cinema does not exist")
-        return cinema
+        return cinemas
 
     async def update_cinema(self,cinema_id: int,  update_cinema: UpdateCinema) -> Cinema:
 

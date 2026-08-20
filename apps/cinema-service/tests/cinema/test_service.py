@@ -75,11 +75,11 @@ async def test_get_cinema_by_name_success(cinema_service: CinemaService, mock_re
         address="Test Address"
     )
 
-    mock_repo.get_by_name = AsyncMock(return_value=cinema)
+    mock_repo.get_by_name = AsyncMock(return_value=[cinema])
 
     result = await cinema_service.get_cinema_by_name("Test Cinema")
 
-    assert result.name == "Test Cinema"
+    assert  result[0].name == "Test Cinema"
 
 async def test_get_cinema_by_name_not_found(cinema_service: CinemaService, mock_repo: AsyncMock) -> None:
 

@@ -57,8 +57,9 @@ async def test_get_cinema_by_name_success(client: AsyncClient) -> None:
     assert result.status_code == 200
 
     data = result.json()
-    assert data["name"] == "Test Cinema"
-    assert data["city"] == "Test City"
+    assert len(data) == 1
+    assert data[0]["name"] == "Test Cinema"
+    assert data[0]["city"] == "Test City"
 
 
 def test_cinema_repr() -> None:
