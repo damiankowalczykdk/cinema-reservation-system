@@ -44,6 +44,10 @@ class CinemaService:
         if not cinema:
             raise NotFoundException("Cinema does not exist")
 
+        existing_cinema = await self.repository.get_by_address(update_cinema.address)
+        if existing_cinema and existing_cinema.id != cinema_id:
+            raise ConflictException("Cinema already exists")
+
         cinema.update(update_data={
             "name": update_cinema.name,
             "city": update_cinema.city,

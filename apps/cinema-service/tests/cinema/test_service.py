@@ -97,12 +97,14 @@ async def test_update_cinema_success(cinema_service: CinemaService, mock_repo: A
         address="Test Address"
     )
 
+
     update_cinema = UpdateCinema(
         name="Test Cinema",
         city="Test City",
         address="Test Address2"
     )
     mock_repo.get_by_id = AsyncMock(return_value=cinema)
+    mock_repo.get_by_address = AsyncMock(return_value=cinema)
 
     await cinema_service.update_cinema(1, update_cinema)
 
@@ -120,6 +122,32 @@ async def test_update_cinema_not_found(cinema_service: CinemaService, mock_repo:
         address="Test Address2"
     )
     with pytest.raises(NotFoundException, match="Cinema does not exist"):
+
+        await cinema_service.update_cinema(1, update_cinema)
+
+async def test_update_cinema_address_conflict(cinema_service: CinemaService, mock_repo: AsyncMock) -> None:
+    cinema = Cinema(
+        id=1,
+        name="Test Cinema",
+        city="Test City",
+        address="Test Address"
+    )
+    cinema_2 = Cinema(
+        id=2,
+        name="Test Cinema2",
+        city="Test City2",
+        address="Test Address2"
+    )
+
+    update_cinema = UpdateCinema(
+        name="Test Cinema",
+        city="Test City",
+        address="Test Address2"
+    )
+    mock_repo.get_by_id = AsyncMock(return_value=cinema)
+    mock_repo.get_by_address = AsyncMock(return_value=cinema_2)
+
+    with pytest.raises(ConflictException, match="Cinema already exists"):
 
         await cinema_service.update_cinema(1, update_cinema)
 
