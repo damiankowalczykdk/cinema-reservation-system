@@ -1,14 +1,20 @@
+import httpx
 from fastapi import FastAPI
 from starlette.middleware.sessions import SessionMiddleware
 from starlette.middleware.cors import CORSMiddleware
-from core import settings
-from routes import router as auth_router
+from core.config import settings
+from routes.auth import router as auth_router
+from services.cinema_client import get_cinema_health
 
 app = FastAPI()
 
 @app.get("/health")
 async def get_health():
-    return {"status": "ok"}
+    async with httpx.AsyncClient() as client:
+        cinema_status = await get_cinema_health(client, settings)
+    overall = "ok" if cinema_status.get("status") == "ok" else "degraded"
+    return {"status": overall, "gateway": "ok", "cinema_status": cinema_status}
+
 
 app.add_middleware(
     CORSMiddleware,
