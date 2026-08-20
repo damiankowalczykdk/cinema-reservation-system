@@ -1,14 +1,12 @@
 import secrets
 import urllib.parse
-
 import httpx
 from fastapi import APIRouter, Request, HTTPException, Response
 from starlette.responses import RedirectResponse
 from starlette.status import HTTP_502_BAD_GATEWAY
-
 from core.config import settings
 from core.security import CurrentUser
-from domain.schemas import LoginUrlResponse, TokenPayload
+from domain.schemas.auth import TokenPayload, LoginUrlResponse
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
