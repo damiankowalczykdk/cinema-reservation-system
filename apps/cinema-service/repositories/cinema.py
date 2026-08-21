@@ -10,11 +10,6 @@ class CinemaRepository(GenericRepository[Cinema]):
     def __init__(self, session: AsyncSession):
         super().__init__(session, Cinema)
 
-    async def get_by_name(self, name: str) -> Sequence[Cinema] | None:
-        stmt = select(Cinema).where(Cinema.name == name)
-        result = await self.session.execute(stmt)
-        return result.scalars().all()
-
     async def get_by_address(self, address: str) -> Cinema | None:
         stmt = select(Cinema).where(Cinema.address == address)
         result = await self.session.execute(stmt)
