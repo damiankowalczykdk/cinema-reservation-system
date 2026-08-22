@@ -5,7 +5,8 @@ from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import async_engine_from_config
 from alembic import context
 from core.database import Base
-from domain.models.cinema import Cinema  # noqa: F401
+from domain.models.cinema import Cinema # noqa: F401
+from domain.models.hall import Hall # noqa: F401
 from core.config import database_settings
 
 # this is the Alembic Config object, which provides
