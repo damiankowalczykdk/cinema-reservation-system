@@ -7,9 +7,9 @@ class CreateCinema(BaseModel):
     address: str
 
 class UpdateCinema(BaseModel):
-    name: str
-    city: str
-    address: str
+    name: str | None = None
+    city: str | None = None
+    address: str | None = None
 
 class CinemaRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
