@@ -2,12 +2,15 @@ from typing import Annotated
 from fastapi import Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 from core.database import get_db
+from domain.models.screening import Screening
 from repositories.cinema import CinemaRepository
 from repositories.hall import HallRepository
 from repositories.movie import MovieRepository
+from repositories.screening import ScreeningRepository
 from services.cinema import CinemaService
 from services.hall import HallService
 from services.movie import MovieService
+from services.screening import ScreeningService
 
 
 # CINEMA
@@ -47,6 +50,19 @@ def get_movie_service(movie_repository: MovieRepoDep) -> MovieService:
 
 MovieServiceDep = Annotated[MovieService, Depends(get_movie_service)]
 
+# SCREENING
 
+def get_screening_repository(session: AsyncSession = Depends(get_db)) -> ScreeningRepository:
+    return ScreeningRepository(session)
 
+ScreeningRepoDep = Annotated[ScreeningRepository, Depends(get_screening_repository)]
+
+def get_screening_service(
+        screening_repository: ScreeningRepoDep,
+        movie_repository: MovieRepoDep,
+        hall_repository: HallRepoDep
+) -> ScreeningService:
+    return ScreeningService(screening_repository, movie_repository, hall_repository)
+
+ScreeningServiceDep = Annotated[ScreeningService, Depends(get_screening_service)]
 
