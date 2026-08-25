@@ -7,7 +7,7 @@ from api.error_handlers import register_error_handlers
 from api.routes.auth import router as auth_router
 from clients.cinema import get_cinema_health
 from api.routes.cinema import router as cinema_router
-from api.dependencies import CinemaClientDep
+from api.dependencies import CinemaServiceClientDep
 from core.config import get_settings
 
 settings = get_settings()
@@ -24,7 +24,7 @@ app = FastAPI(lifespan=lifespan)
 register_error_handlers(app)
 
 @app.get("/health")
-async def get_health(cinema_client: CinemaClientDep):
+async def get_health(cinema_client: CinemaServiceClientDep):
     cinema_status = await get_cinema_health(cinema_client)
     overall = "ok" if cinema_status.get("status") == "ok" else "degraded"
     return {"status": overall, "gateway": "ok", "cinema_status": cinema_status}

@@ -18,4 +18,4 @@ HttpClient = Annotated[httpx.AsyncClient, Depends(get_httpx_client)]
 def get_client_client(client: HttpClient, settings: Auth0SettingsDep) -> ServiceRequestClient:
     return ServiceRequestClient(client, settings.cinema_service_url)
 
-CinemaClientDep = Annotated[ServiceRequestClient, Depends(get_client_client)]
+CinemaServiceClientDep = Annotated[ServiceRequestClient, Depends(get_client_client)]
