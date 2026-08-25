@@ -1,3 +1,5 @@
+from functools import lru_cache
+
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -20,7 +22,10 @@ class Auth0Settings(BaseSettings):
         frozen=True
     )
 
-settings = Auth0Settings() #type: ignore
 
+@lru_cache
+def get_settings() -> Auth0Settings:
+    return Auth0Settings() #type: ignore
 
+settings = get_settings()
 
