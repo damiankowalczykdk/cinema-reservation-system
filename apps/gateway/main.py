@@ -1,16 +1,18 @@
 from contextlib import asynccontextmanager
+
 import httpx
 from fastapi import FastAPI
-from starlette.middleware.sessions import SessionMiddleware
 from starlette.middleware.cors import CORSMiddleware
+from starlette.middleware.sessions import SessionMiddleware
+
+from api.dependencies import HttpClient
 from api.error_handlers import register_error_handlers
 from api.routes.auth import router as auth_router
-from clients.cinema import get_cinema_health
 from api.routes.cinema import router as cinema_router
 from api.routes.hall import router as hall_router
 from api.routes.movie import router as movie_router
 from api.routes.screening import router as screening_router
-from api.dependencies import CinemaServiceClientDep
+from clients.cinema import get_cinema_health
 from core.config import get_settings
 
 settings = get_settings()
@@ -27,10 +29,11 @@ app = FastAPI(lifespan=lifespan)
 register_error_handlers(app)
 
 @app.get("/health")
-async def get_health(cinema_client: CinemaServiceClientDep):
-    cinema_status = await get_cinema_health(cinema_client)
+async def get_health(http_client: HttpClient) -> dict:
+    cinema_status = await get_cinema_health(http_client)
     overall = "ok" if cinema_status.get("status") == "ok" else "degraded"
     return {"status": overall, "gateway": "ok", "cinema_status": cinema_status}
+
 
 
 app.add_middleware(

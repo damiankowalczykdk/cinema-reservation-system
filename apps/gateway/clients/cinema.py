@@ -1,8 +1,12 @@
-from fastapi import HTTPException
-from api.dependencies import CinemaServiceClientDep
+import httpx
+from api.dependencies import HttpClient
+from core.config import settings
 
-async def get_cinema_health(cinema_client: CinemaServiceClientDep) -> dict:
+
+async def get_cinema_health(client: HttpClient) -> dict:
     try:
-        return await cinema_client.safe_request("GET", "/health")
-    except HTTPException as e:
-        return {"status": "unreachable", "message": str(e.detail)}
+        response = await client.get(f"{settings.cinema_service_url}/health", timeout=settings.http_timeout_health_check)
+        response.raise_for_status()
+        return response.json()
+    except httpx.HTTPError as e:
+        return {"status": "unreachable", "message": str(e)}

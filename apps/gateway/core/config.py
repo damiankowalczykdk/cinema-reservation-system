@@ -14,6 +14,7 @@ class Auth0Settings(BaseSettings):
     secret_key: str
 
     http_timeout: int
+    http_timeout_health_check: int
     cinema_service_url: str
 
     model_config = SettingsConfigDict(
