@@ -44,4 +44,3 @@ async def get_current_user(
 
     return TokenPayload(**payload)
 
-CurrentUser = Annotated[TokenPayload, Depends(get_current_user)]

@@ -4,8 +4,9 @@ import httpx
 from fastapi import APIRouter, Request, HTTPException, Response
 from starlette.responses import RedirectResponse
 from starlette.status import HTTP_502_BAD_GATEWAY
+
+from api.dependencies import CurrentUserDep
 from core.config import settings
-from core.security import CurrentUser
 from domain.schemas.auth import TokenPayload, LoginUrlResponse
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -67,7 +68,7 @@ async def auth_callback(request: Request, code: str, state: str):
         return response
 
 @router.get("/me", response_model=TokenPayload)
-async def get_current_user(user: CurrentUser) -> TokenPayload:
+async def get_current_user(user: CurrentUserDep) -> TokenPayload:
     return user
 
 @router.get("/logout-url", response_model=LoginUrlResponse)
