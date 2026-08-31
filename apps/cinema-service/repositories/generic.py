@@ -24,6 +24,7 @@ class GenericRepository(Generic[ModelType]):
     async def get_by_id(self, id: int) -> ModelType | None:
         return await self.session.get(self.model, id)
 
+
     async def get_all(self) -> Sequence[ModelType]:
         result = await self.session.execute(select(self.model))
         return result.scalars().all()

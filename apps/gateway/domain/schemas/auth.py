@@ -1,4 +1,5 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
+
 
 class LoginUrlResponse(BaseModel):
     url: str
@@ -10,4 +11,5 @@ class TokenPayload(BaseModel):
     permissions: list[str] = []
     scope: str = ""
     org_id: str | None = None
+    roles: list[str] = Field(default=[], alias="my-namespace/globalRoles")
     

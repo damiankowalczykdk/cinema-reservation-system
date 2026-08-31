@@ -4,7 +4,7 @@ from fastapi import Depends, status, HTTPException, Request
 from jwt import PyJWKClient, InvalidTokenError
 
 from core.config import settings
-from domain.schemas import TokenPayload
+from domain.schemas.auth import TokenPayload
 
 jwks_client = PyJWKClient(
     f"https://{settings.auth0_domain}/.well-known/jwks.json",
@@ -44,4 +44,3 @@ async def get_current_user(
 
     return TokenPayload(**payload)
 
-CurrentUser = Annotated[TokenPayload, Depends(get_current_user)]

@@ -18,9 +18,10 @@ async def test_get_by_name(db_session: AsyncSession) -> None:
     result = await repo.get_by_name("Cinema")
 
     assert result is not None
-    assert result.id == 1
-    assert result.name == "Cinema"
-    assert result.city == "San Jose"
+    assert len(result) == 1
+    assert result[0].id == 1
+    assert result[0].name == "Cinema"
+    assert result[0].city == "San Jose"
 
 async def test_get_by_address(db_session: AsyncSession) -> None:
     repo = CinemaRepository(db_session)
