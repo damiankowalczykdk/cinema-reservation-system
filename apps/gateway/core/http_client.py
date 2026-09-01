@@ -27,7 +27,7 @@ class ServiceRequestClient:
             json: JsonType = None,
             params: ParamsType = None,
             headers: HeadersType = None,
-    ) -> T | None:
+    ) -> T:
 
         try:
             response = await self.client.request(
@@ -55,32 +55,5 @@ class ServiceRequestClient:
                 detail=error_detail,
             )
 
-        if response.status_code == status.HTTP_204_NO_CONTENT:
-            return None
 
         return response.json()
-
-    async def safe_request[T](
-            self,
-            method: str,
-            path: str,
-            *,
-            json: JsonType = None,
-            params: ParamsType = None,
-            headers: HeadersType = None,
-    ) -> T:
-        response: T | None = await self.request(
-            method,
-            path,
-            json=json,
-            params=params,
-            headers=headers,
-        )
-
-        if response is None:
-            raise HTTPException(
-                status_code=status.HTTP_502_BAD_GATEWAY,
-                detail="Upstream service returned unexpected empty response",
-            )
-
-        return response
