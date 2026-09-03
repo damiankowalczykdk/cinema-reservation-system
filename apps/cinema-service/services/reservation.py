@@ -1,7 +1,7 @@
 from typing import Sequence
 from core.exceptions import NotFoundException, ValidationException, ConflictException, UnauthorizedException
 from domain.models.reservation import Reservation, Status
-from domain.schemas.reservation import CreateReservation
+from domain.schemas.reservation import CreateReservation, OccupiedSeatsRead
 from repositories.hall import HallRepository
 from repositories.reservation import ReservationRepository
 from repositories.screening import ScreeningRepository
@@ -86,6 +86,23 @@ class ReservationService:
     async def delete_reservation_by_id(self, reservation_id: int) -> None:
         await self._check_reservation(reservation_id)
         await self.reservation_repository.delete_by_id(reservation_id)
+
+
+    async def get_occupied_seats(self, screening_id: int) -> OccupiedSeatsRead:
+        screening = await self.screening_repository.get_by_id(screening_id)
+        if not screening:
+            raise NotFoundException("Screening not found")
+
+        hall = await self.hall_repository.get_by_id(screening.hall_id)
+        if not hall:
+            raise NotFoundException("Hall not found")
+
+        occupied_seats = await self.reservation_repository.get_active_reservation_for_screening(screening_id)
+
+
+        seats = [(r.row, r.seat) for r in occupied_seats]
+
+        return OccupiedSeatsRead(seats=seats, row=hall.rows, seat_per_row=hall.seats_per_row)
 
 
 

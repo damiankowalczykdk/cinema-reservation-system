@@ -4,7 +4,7 @@ from fastapi import APIRouter, status
 
 from api.dependencies import ReservationServiceDep, CurrentUserIdDep, IsAdminDep
 from domain.models.reservation import Reservation
-from domain.schemas.reservation import ReservationRead, CreateReservation
+from domain.schemas.reservation import ReservationRead, CreateReservation, OccupiedSeatsRead
 
 router = APIRouter(prefix="/reservation", tags=["reservation"])
 
@@ -23,3 +23,7 @@ async def get_user_reservations(user_id: CurrentUserIdDep, service: ReservationS
 @router.post("/{reservation_id}/cancel", response_model=ReservationRead, status_code=status.HTTP_200_OK, summary="Cancel reservation")
 async def cancel_reservation(reservation_id: int, service: ReservationServiceDep, user_id: CurrentUserIdDep, is_admin: IsAdminDep) -> Reservation:
     return await service.cancel_reservation(reservation_id, user_id, is_admin)
+
+@router.get("/screening/{screening_id}/seats", response_model=OccupiedSeatsRead, status_code=status.HTTP_200_OK, summary="Get occupied seats")
+async def get_occupied_seats(screening_id: int, service: ReservationServiceDep) -> OccupiedSeatsRead:
+    return await service.get_occupied_seats(screening_id)
