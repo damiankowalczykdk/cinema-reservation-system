@@ -48,9 +48,4 @@ class Reservation(Base):
         return (f"< Reservation {self.id} screening {self.screening_id} row {self.row} seat {self.seat} "
                 f"status {self.status} price {self.price_paid} >")
 
-    def update(self, update_data: dict) -> None:
-        for key, value in update_data.items():
-            if hasattr(self, key) and value is not None:
-                setattr(self, key, value)
-
 
