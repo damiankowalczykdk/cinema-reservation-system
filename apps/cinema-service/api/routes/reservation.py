@@ -27,3 +27,9 @@ async def cancel_reservation(reservation_id: int, service: ReservationServiceDep
 @router.get("/screening/{screening_id}/seats", response_model=OccupiedSeatsRead, status_code=status.HTTP_200_OK, summary="Get occupied seats")
 async def get_occupied_seats(screening_id: int, service: ReservationServiceDep) -> OccupiedSeatsRead:
     return await service.get_occupied_seats(screening_id)
+
+@router.delete("/{reservation_id}", status_code=status.HTTP_204_NO_CONTENT, summary="Delete reservation")
+async def delete_reservation(reservation_id: int, service: ReservationServiceDep) -> None:
+    return await service.delete_reservation_by_id(reservation_id)
+
+
