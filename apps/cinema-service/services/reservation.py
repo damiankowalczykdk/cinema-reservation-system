@@ -18,7 +18,7 @@ class ReservationService:
         self.hall_repository = hall_repository
         self.screening_repository = screening_repository
 
-    async def create_reservation(self, create_reservation: CreateReservation, user_id: str | None) -> Reservation:
+    async def create_reservation(self, create_reservation: CreateReservation, user_id: str | None = None) -> Reservation:
         screening = await self.screening_repository.get_by_id(create_reservation.screening_id)
         if not screening:
             raise NotFoundException("Screening not found")
