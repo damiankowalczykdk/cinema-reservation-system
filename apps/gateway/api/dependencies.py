@@ -9,23 +9,21 @@ from api.permissions import require_roles
 
 # AUTH
 
-Auth0SettingsDep = Annotated[Auth0Settings, Depends(get_settings)]
+AuthSettings = Annotated[Auth0Settings, Depends(get_settings)]
 
 def get_httpx_client(request: Request) -> httpx.AsyncClient:
     return request.app.state.http_client
 
 HttpClient = Annotated[httpx.AsyncClient, Depends(get_httpx_client)]
 
-def get_client_client(client: HttpClient, settings: Auth0SettingsDep) -> ServiceRequestClient:
+def get_client_client(client: HttpClient, settings: AuthSettings) -> ServiceRequestClient:
     return ServiceRequestClient(client, settings.cinema_service_url)
 
-CinemaServiceClientDep = Annotated[ServiceRequestClient, Depends(get_client_client)]
+CinemaServiceClient = Annotated[ServiceRequestClient, Depends(get_client_client)]
 
-CurrentUserDep = Annotated[TokenPayload, Depends(get_current_user)]
+CurrentUser = Annotated[TokenPayload, Depends(get_current_user)]
 
-# OPTIONAL USER
-
-OptionalCurrentUserDep = Annotated[TokenPayload | None, Depends(get_optional_current_user)]
+OptionalCurrentUser = Annotated[TokenPayload | None, Depends(get_optional_current_user)]
 
 def build_identity_headers(user: TokenPayload | None) -> dict[str, str]:
     if user is None:

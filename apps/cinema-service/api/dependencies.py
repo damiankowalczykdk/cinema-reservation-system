@@ -2,7 +2,6 @@ from typing import Annotated
 from fastapi import Depends, Header
 from sqlalchemy.ext.asyncio import AsyncSession
 from core.database import get_db
-from domain.models.screening import Screening
 from repositories.cinema import CinemaRepository
 from repositories.hall import HallRepository
 from repositories.movie import MovieRepository
@@ -35,7 +34,7 @@ def get_hall_repository(session: AsyncSession = Depends(get_db)) -> HallReposito
 
 HallRepoDep = Annotated[HallRepository, Depends(get_hall_repository)]
 
-def get_hall_service(hall_repository: HallRepoDep, cinema_repository: CinemaRepoDep ) -> HallService:
+def get_hall_service(hall_repository: HallRepoDep, cinema_repository: CinemaRepoDep) -> HallService:
     return HallService(hall_repository, cinema_repository)
 
 HallServiceDep = Annotated[HallService, Depends(get_hall_service)]
@@ -90,10 +89,10 @@ ReservationServiceDep = Annotated[ReservationService, Depends(get_reservation_se
 def get_user_id(x_user_id: str | None = Header(default=None, alias="X-User-Id")) -> str | None:
     return x_user_id
 
-CurrentUserIdDep = Annotated[str | None, Depends(get_user_id)]
+CurrentUserId = Annotated[str | None, Depends(get_user_id)]
 
 def get_is_admin(is_admin: bool = Header(default=False, alias="X-Is-Admin")) -> bool:
     return is_admin
 
-IsAdminDep = Annotated[bool, Depends(get_is_admin)]
+IsAdmin = Annotated[bool, Depends(get_is_admin)]
 
