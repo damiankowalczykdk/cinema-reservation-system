@@ -1,10 +1,12 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 
 
 class LoginUrlResponse(BaseModel):
     url: str
 
 class TokenPayload(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
     sub: str
     email: str | None = None
     email_verified: bool | None = None

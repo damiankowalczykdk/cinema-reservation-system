@@ -12,7 +12,7 @@ async def create_hall(payload: CreateHall, hall_client: CinemaServiceClientDep) 
 async def get_hall_by_id(hall_id: int, hall_client: CinemaServiceClientDep) -> HallRead:
     return await hall_client.request("GET", f"/hall/{hall_id}")
 
-@router.get("/", response_model=HallRead, status_code=status.HTTP_200_OK, summary="Hall", dependencies=[admin])
+@router.get("", response_model=HallRead, status_code=status.HTTP_200_OK, summary="Hall", dependencies=[admin])
 async def get_hall_by_name(cinema_id: int, name: str, hall_client: CinemaServiceClientDep) -> HallRead:
     return await hall_client.request("GET", "/hall/", params={"cinema_id": cinema_id, "name": name})
 
