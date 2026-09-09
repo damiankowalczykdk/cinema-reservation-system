@@ -12,7 +12,7 @@ async def create_movie(payload: CreateMovie, movie_client: CinemaServiceClientDe
 async def get_movie_by_id(movie_id: int, movie_client: CinemaServiceClientDep) -> MovieRead:
     return await movie_client.request("GET", f"/movie/{movie_id}")
 
-@router.get("/", response_model=list[MovieRead], status_code=status.HTTP_200_OK, summary="Get Movies", dependencies=[admin])
+@router.get("", response_model=list[MovieRead], status_code=status.HTTP_200_OK, summary="Get Movies", dependencies=[admin])
 async def get_movie_by_title(title: str, movie_client: CinemaServiceClientDep) -> list[MovieRead]:
     return await movie_client.request("GET", f"/movie/", params={"title": title})
 

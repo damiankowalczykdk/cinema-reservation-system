@@ -21,3 +21,8 @@ class ValidationException(APIException):
     def __init__(self, message: str = "Validation failed") -> None:
         super().__init__(message, status_code=status.HTTP_400_BAD_REQUEST, error_code="VALIDATION_ERROR")
 
+
+class UnauthorizedException(APIException):
+    def __init__(self, message: str = "Authentication required") -> None:
+        super().__init__(message, status_code=status.HTTP_401_UNAUTHORIZED, error_code="UNAUTHORIZED")
+

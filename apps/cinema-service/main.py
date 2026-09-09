@@ -5,6 +5,7 @@ from api.error_handlers import register_error_handlers
 from api.routes.health import router as health_router
 from api.routes.movie import router as movie_router
 from api.routes.screening import router as screening_router
+from api.routes.reservation import router as reservation_router
 
 
 app = FastAPI()
@@ -15,3 +16,4 @@ app.include_router(health_router)
 app.include_router(hall_router)
 app.include_router(movie_router)
 app.include_router(screening_router)
+app.include_router(reservation_router)

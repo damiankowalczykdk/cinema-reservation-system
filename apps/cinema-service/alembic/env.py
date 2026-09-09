@@ -9,6 +9,7 @@ from domain.models.cinema import Cinema # noqa: F401
 from domain.models.hall import Hall # noqa: F401
 from domain.models.movie import Movie # noqa: F401
 from domain.models.screening import Screening # noqa: F401
+from domain.models.reservation import Reservation # noqa: F401
 from core.config import database_settings
 
 # this is the Alembic Config object, which provides

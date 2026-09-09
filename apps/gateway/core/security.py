@@ -2,7 +2,6 @@ import jwt
 from typing import Annotated
 from fastapi import Depends, status, HTTPException, Request
 from jwt import PyJWKClient, InvalidTokenError
-
 from core.config import settings
 from domain.schemas.auth import TokenPayload
 
@@ -26,15 +25,7 @@ async def get_current_user(
 ) -> TokenPayload:
 
     try:
-        signin_key = jwks_client.get_signing_key_from_jwt(token)
-
-        payload = jwt.decode(
-            token,
-            signin_key.key,
-            algorithms=["RS256"],
-            audience=settings.auth0_audience,
-            issuer=f"https://{settings.auth0_domain}/"
-        )
+        payload = _decode_token(token)
     except InvalidTokenError as e:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -44,3 +35,26 @@ async def get_current_user(
 
     return TokenPayload(**payload)
 
+
+async def get_optional_current_user(request: Request) -> TokenPayload | None:
+    token = request.cookies.get("access_token")
+    if not token:
+        return None
+    try:
+        payload = _decode_token(token)
+    except InvalidTokenError:
+        return None
+    return TokenPayload(**payload)
+
+
+
+def _decode_token(token: str) -> dict:
+    signin_key = jwks_client.get_signing_key_from_jwt(token)
+
+    return jwt.decode(
+        token,
+        signin_key.key,
+        algorithms=["RS256"],
+        audience=settings.auth0_audience,
+        issuer=f"https://{settings.auth0_domain}/"
+    )

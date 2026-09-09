@@ -12,7 +12,7 @@ async def create_cinema(payload: CreateCinema, cinema_client: CinemaServiceClien
 async def get_cinema_by_id(cinema_id: int, cinema_client: CinemaServiceClientDep) -> CinemaRead:
     return await cinema_client.request("GET", f"/cinema/{cinema_id}")
 
-@router.get("/", response_model=list[CinemaRead], status_code=status.HTTP_200_OK, summary="Cinema by name", dependencies=[admin])
+@router.get("", response_model=list[CinemaRead], status_code=status.HTTP_200_OK, summary="Cinema by name", dependencies=[admin])
 async def get_cinema_by_name(name: str, cinema_client: CinemaServiceClientDep) -> list[CinemaRead]:
     return await cinema_client.request("GET", f"/cinema/", params={"name": name})
 
