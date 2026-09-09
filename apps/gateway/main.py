@@ -18,7 +18,7 @@ from core.config import get_settings
 settings = get_settings()
 
 @asynccontextmanager
-async def lifespan(app: FastAPI):
+async def lifespan(app: FastAPI): # pragma: no cover.
     app.state.http_client = httpx.AsyncClient(timeout=settings.http_timeout)
     yield
     await app.state.http_client.aclose()

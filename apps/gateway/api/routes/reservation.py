@@ -70,3 +70,12 @@ async def cancel_reservation(
 )
 async def get_occupied_seats(screening_id: int, reservation_client: CinemaServiceClient) -> OccupiedSeatsRead:
     return await reservation_client.request("GET", f"/reservation/screening/{screening_id}/seats")
+
+
+@router.delete(
+    "/{reservation_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Delete reservation"
+)
+async def delete_reservation_by_id(reservation_id: int, reservation_client: CinemaServiceClient) -> None:
+    await reservation_client.request("DELETE", f"/reservation/{reservation_id}")
