@@ -1,4 +1,3 @@
-from idlelib.rpc import response_queue
 
 from httpx import AsyncClient
 

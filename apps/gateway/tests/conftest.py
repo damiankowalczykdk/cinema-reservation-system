@@ -16,7 +16,7 @@ def test_settings() -> Auth0Settings:
     return Auth0Settings(
         cinema_service_url="http://mock-cinema-service",
         http_timeout=5
-    )
+    ) #type: ignore
 
 @pytest_asyncio.fixture
 async def client(test_settings: Settings) -> AsyncGenerator[AsyncClient, None]:
@@ -31,7 +31,7 @@ async def client(test_settings: Settings) -> AsyncGenerator[AsyncClient, None]:
 
 @pytest_asyncio.fixture
 async def admin_client(test_settings: Settings) -> AsyncGenerator[AsyncClient, None]:
-    app.dependency_overrides[get_current_user] = lambda: TokenPayload(sub="test123", roles=["admin"])
+    app.dependency_overrides[get_current_user] = lambda: TokenPayload(sub="test123", roles=["admin"]) # type: ignore
     app.state.http_client = httpx.AsyncClient()
 
     async with AsyncClient(transport=ASGITransport(app=app,  raise_app_exceptions=False), base_url="http://test") as ac:
@@ -41,7 +41,7 @@ async def admin_client(test_settings: Settings) -> AsyncGenerator[AsyncClient, N
 
 @pytest_asyncio.fixture
 async def user_client(test_settings: Settings) -> AsyncGenerator[AsyncClient, None]:
-    app.dependency_overrides[get_current_user] = lambda: TokenPayload(sub="test123user", roles=["user"])
+    app.dependency_overrides[get_current_user] = lambda: TokenPayload(sub="test123user", roles=["user"]) # type: ignore
     app.state.http_client = httpx.AsyncClient()
 
     async with AsyncClient(transport=ASGITransport(app=app,  raise_app_exceptions=False), base_url="http://test") as ac:
