@@ -1,4 +1,4 @@
-from api.dependencies import CinemaServiceClient, admin, build_identity_headers, CurrentUser, OptionalCurrentUser
+from api.dependencies import CinemaServiceClient, admin, CurrentUser
 from domain.schemas.reservation import ReservationRead, CreateReservation, OccupiedSeatsRead
 from fastapi import APIRouter, status
 
@@ -13,16 +13,15 @@ router = APIRouter(prefix="/reservations", tags=["reservations"])
 async def create_reservation(
         payload: CreateReservation,
         reservation_client: CinemaServiceClient,
-        current_user: OptionalCurrentUser
+        current_user: CurrentUser
 ) -> ReservationRead:
 
     return await reservation_client.request(
         "POST",
         f"/reservation/",
         json=payload.model_dump(mode="json"),
-        headers=build_identity_headers(current_user)
+        headers={"X-User-Id": current_user.sub} if current_user else None
     )
-
 @router.get(
     "/{reservation_id}",
     response_model=ReservationRead,
@@ -43,7 +42,7 @@ async def get_user_reservations(
         current_user: CurrentUser,
         reservation_client: CinemaServiceClient
 ) -> list[ReservationRead]:
-    return await reservation_client.request("GET", f"/reservation/", headers=build_identity_headers(current_user))
+    return await reservation_client.request("GET", f"/reservation/", headers={"X-User-Id": current_user.sub})
 
 @router.post(
     "/{reservation_id}/cancel",
@@ -56,10 +55,15 @@ async def cancel_reservation(
         reservation_client: CinemaServiceClient,
         current_user: CurrentUser
 ) -> ReservationRead:
+
+    headers = {"X-User-Id": current_user.sub}
+    if "admin" in current_user.roles:
+        headers["X-Is-Admin"] = "true"
+
     return await reservation_client.request(
         "POST",
         f"/reservation/{reservation_id}/cancel",
-        headers=build_identity_headers(current_user)
+        headers=headers
     )
 
 @router.get(
@@ -75,7 +79,8 @@ async def get_occupied_seats(screening_id: int, reservation_client: CinemaServic
 @router.delete(
     "/{reservation_id}",
     status_code=status.HTTP_204_NO_CONTENT,
-    summary="Delete reservation"
+    summary="Delete reservation",
+    dependencies=[admin]
 )
 async def delete_reservation_by_id(reservation_id: int, reservation_client: CinemaServiceClient) -> None:
     await reservation_client.request("DELETE", f"/reservation/{reservation_id}")
