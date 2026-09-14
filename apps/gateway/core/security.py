@@ -1,9 +1,9 @@
 import jwt
-from typing import Annotated
-from fastapi import Depends, status, HTTPException, Request
+from fastapi import status, HTTPException, Request, Depends
 from jwt import PyJWKClient, InvalidTokenError
 from core.config import settings
 from domain.schemas.auth import TokenPayload
+from typing import Annotated
 
 jwks_client = PyJWKClient(
     f"https://{settings.auth0_domain}/.well-known/jwks.json",
@@ -11,50 +11,30 @@ jwks_client = PyJWKClient(
     lifespan=300
 )
 
-async def get_token_from_cookie(request: Request) -> str:
+async def get_current_user(request: Request) -> TokenPayload | None:
     token = request.cookies.get("access_token")
     if not token:
+        return None
+    try:
+
+        signin_key = jwks_client.get_signing_key_from_jwt(token)
+        payload = jwt.decode(
+            token,
+            signin_key.key,
+            algorithms=["RS256"],
+            audience=settings.auth0_audience,
+            issuer=f"https://{settings.auth0_domain}/"
+    )
+
+    except InvalidTokenError:
+        return None
+
+    return TokenPayload(**payload)
+
+async def require_current_user(current_user: Annotated[TokenPayload, Depends(get_current_user)]):
+    if current_user is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Not authenticated"
         )
-    return token
-
-async def get_current_user(
-        token: Annotated[str, Depends(get_token_from_cookie)]
-) -> TokenPayload:
-
-    try:
-        payload = _decode_token(token)
-    except InvalidTokenError as e:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Could not validate credentials",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-
-    return TokenPayload(**payload)
-
-
-async def get_optional_current_user(request: Request) -> TokenPayload | None:
-    token = request.cookies.get("access_token")
-    if not token:
-        return None
-    try:
-        payload = _decode_token(token)
-    except InvalidTokenError:
-        return None
-    return TokenPayload(**payload)
-
-
-
-def _decode_token(token: str) -> dict:
-    signin_key = jwks_client.get_signing_key_from_jwt(token)
-
-    return jwt.decode(
-        token,
-        signin_key.key,
-        algorithms=["RS256"],
-        audience=settings.auth0_audience,
-        issuer=f"https://{settings.auth0_domain}/"
-    )
+    return current_user
