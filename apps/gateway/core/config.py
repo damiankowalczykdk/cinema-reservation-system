@@ -15,7 +15,9 @@ class Auth0Settings(BaseSettings):
 
     http_timeout: int
     http_timeout_health_check: int
+
     cinema_service_url: str
+    payment_service_url: str
 
     model_config = SettingsConfigDict(
         env_file=".env",

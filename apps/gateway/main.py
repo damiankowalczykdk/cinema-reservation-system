@@ -13,6 +13,7 @@ from api.routes.health import router as health_router
 from api.routes.movie import router as movie_router
 from api.routes.reservation import router as reservation_router
 from api.routes.screening import router as screening_router
+from api.routes.payment import router as payment_router
 from core.config import get_settings
 
 settings = get_settings()
@@ -46,3 +47,4 @@ app.include_router(screening_router)
 
 app.include_router(reservation_router)
 app.include_router(health_router)
+app.include_router(payment_router)
