@@ -47,9 +47,59 @@ services:
     networks:
       - backend
 
+  payment-service:
+    build:
+      context: ./apps/payment-service
+      dockerfile: Dockerfile
+    restart: always
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      POSTGRES_PAYMENT_USER: ${POSTGRES_PAYMENT_USER}
+      POSTGRES_PAYMENT_PASSWORD: ${POSTGRES_PAYMENT_PASSWORD}
+      POSTGRES_PAYMENT_HOST: ${POSTGRES_PAYMENT_HOST}
+      POSTGRES_PAYMENT_PORT: ${POSTGRES_PAYMENT_PORT}
+      POSTGRES_PAYMENT_DB: ${POSTGRES_PAYMENT_DB}
+
+    ports:
+      - "8002:8002"
+
+    volumes:
+      - ./apps/payment-service:/app
+    networks:
+      - backend
+
+  gateway:
+    build:
+      context: ./apps/gateway
+      dockerfile: Dockerfile
+    restart: always
+    depends_on:
+      - cinema-service
+    env_file:
+      - ./apps/gateway/.env
+    environment:
+     CINEMA_SERVICE_URL: ${CINEMA_SERVICE_URL}
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./apps/gateway:/app
+    networks:
+      - backend
+
+  stripe-cli:
+    image: stripe/stripe-cli:latest
+    command: listen --api-key ${STRIPE_SECRET_KEY} --all-snapshot --forward-to payment-service:8002/payment/webhook
+    depends_on:
+      - payment-service
+    networks:
+      - backend
 
 volumes:
   postgres_data:
+  gateway:
+
 
 networks:
   backend:

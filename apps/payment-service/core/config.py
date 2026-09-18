@@ -13,6 +13,11 @@ class Settings(BaseSettings):
     stripe_webhook_secret: str
 
     frontend_url: str
+    cinema_service_url: str
+
+    http_timeout: int
+
+    default_currency: str = "usd"
 
     @property
     def POSTGRES_URI(self) -> str:

@@ -31,3 +31,7 @@ async def delete_reservation(reservation_id: int, service: ReservationServiceDep
     return await service.delete_reservation_by_id(reservation_id)
 
 
+@router.post("/{reservation_id}/confirm", status_code=status.HTTP_200_OK, summary="Confirm reservation")
+async def set_confirm_reservation(reservation_id: int, service: ReservationServiceDep) -> None:
+    return await service.set_confirm_reservation(reservation_id)
+

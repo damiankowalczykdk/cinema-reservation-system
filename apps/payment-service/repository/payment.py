@@ -1,8 +1,8 @@
 from typing import Sequence
-from sqlalchemy import select
+from sqlalchemy import select, and_
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from domain.model.payment import Payment
+from domain.model.payment import Payment, Status
 
 
 class PaymentRepository:
@@ -25,6 +25,12 @@ class PaymentRepository:
 
     async def get_by_stripe_session_id(self, stripe_session_id: str) -> Payment | None:
         result = await self.session.execute(select(Payment).where(Payment.stripe_session_id == stripe_session_id))
+        return result.scalar_one_or_none()
+
+
+    async def get_by_active_reservation_id(self, reservation_id: int) -> Payment | None:
+        result = await self.session.execute(select(Payment)
+            .where(Payment.reservation_id == reservation_id, Payment.status != Status.FAILED))
         return result.scalar_one_or_none()
 
     async def get_all(self) -> Sequence[Payment]:

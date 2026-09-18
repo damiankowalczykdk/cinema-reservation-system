@@ -17,6 +17,7 @@ class Payment(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     reservation_id: Mapped[int] = mapped_column(Integer, nullable=False)
+    user_id: Mapped[str | None] = mapped_column(String(255))
     amount: Mapped[int] = mapped_column(Integer, nullable=False)
     currency: Mapped[str] = mapped_column(String(32), nullable=False)
     status: Mapped[Status] = mapped_column(SaEnum(Status), nullable=False)

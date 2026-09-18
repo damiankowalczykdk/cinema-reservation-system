@@ -19,6 +19,8 @@ class Auth0Settings(BaseSettings):
     cinema_service_url: str
     payment_service_url: str
 
+    default_currency: str = "usd"
+
     model_config = SettingsConfigDict(
         env_file=".env",
         extra="ignore",

@@ -1,70 +1,66 @@
-import { useEffect, useState } from 'react'
-import { getLoginUrl, getLogoutUrl, getMe, logout } from './api.js'
+import { useState } from 'react'
+import Overview from './Overview.jsx'
+import EntityCrud from './EntityCrud.jsx'
+import Reservation from './Reservation.jsx'
+import Payment from './Payment.jsx'
+import { Section } from './ui.jsx'
+import entities from './entities.js'
 import './App.css'
 
+const NAV = [
+  { key: 'overview', label: 'Overview' },
+  { key: 'cinema', label: 'Cinemas' },
+  { key: 'hall', label: 'Halls' },
+  { key: 'movie', label: 'Movies' },
+  { key: 'screening', label: 'Screenings' },
+  { key: 'reservation', label: 'Reservations' },
+  { key: 'payment', label: 'Payment' },
+]
+
 function App() {
-  const [user, setUser] = useState(undefined) // undefined=loading, null=logged out, object=logged in
-  const [error, setError] = useState(null)
+  const [page, setPage] = useState('overview')
+  const [sessionId] = useState(() => new URLSearchParams(window.location.search).get('session_id'))
 
-  async function refreshUser() {
-    try {
-      setUser(await getMe())
-    } catch (err) {
-      setError(err.message)
-      setUser(null)
-    }
+  if (sessionId) {
+    return (
+      <div className="shell">
+        <main className="content">
+          <Section title="Payment received">
+            <p>Thanks! We're confirming your payment with Stripe — this can take a few seconds.</p>
+            <p>Session: {sessionId}</p>
+          </Section>
+        </main>
+      </div>
+    )
   }
-
-  useEffect(() => {
-    refreshUser()
-  }, [])
-
-  async function handleLogin() {
-    try {
-      const { url } = await getLoginUrl()
-      window.location.href = url
-    } catch (err) {
-      setError(err.message)
-    }
-  }
-
-  async function handleLogout() {
-    try {
-      await logout()
-      await refreshUser()
-    } catch (err) {
-      setError(err.message)
-    }
-  }
-
-  async function handleFullLogout() {
-    try {
-      await logout()
-      const { url } = await getLogoutUrl()
-      window.location.href = url
-    } catch (err) {
-      setError(err.message)
-    }
-  }
-
-  if (user === undefined) return <p>Loading...</p>
 
   return (
-    <div className="container">
-      <h1>Gateway Test Client</h1>
-      {error && <p className="error">{error}</p>}
-      {user ? (
-        <div>
-          <p>
-            Logged in as <strong>{user.email ?? user.sub}</strong>
-          </p>
-          <pre>{JSON.stringify(user, null, 2)}</pre>
-          <button onClick={handleLogout}>Log out (local)</button>
-          <button onClick={handleFullLogout}>Log out (Auth0 session too)</button>
-        </div>
-      ) : (
-        <button onClick={handleLogin}>Log in</button>
-      )}
+    <div className="shell">
+      <aside className="sidebar">
+        <div className="brand">Gateway Console</div>
+        <nav>
+          {NAV.map((item) => (
+            <button
+              key={item.key}
+              className={`nav-item${page === item.key ? ' nav-item--active' : ''}`}
+              onClick={() => setPage(item.key)}
+            >
+              {item.label}
+            </button>
+          ))}
+        </nav>
+      </aside>
+      <main className="content">
+        {page === 'overview' ? (
+          <Overview />
+        ) : page === 'reservation' ? (
+          <Reservation />
+        ) : page === 'payment' ? (
+          <Payment />
+        ) : (
+          <EntityCrud {...entities[page]} />
+        )}
+      </main>
     </div>
   )
 }
