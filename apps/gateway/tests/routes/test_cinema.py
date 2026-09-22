@@ -42,7 +42,7 @@ async def test_get_cinema_by_id(client: AsyncClient, admin_client: AsyncClient, 
     assert response.status_code == 200
 
 @respx.mock
-async def test_get_cinema_by_name(client: AsyncClient, admin_client: AsyncClient, test_settings: Auth0Settings) -> None:
+async def test_get_cinema_by_name(client: AsyncClient, test_settings: Auth0Settings) -> None:
     respx.get(f"{test_settings.cinema_service_url}/cinema/", params={"name": "Test Cinema"}).mock(
         return_value=Response(200, json=[{
             "id": 1,
@@ -52,7 +52,7 @@ async def test_get_cinema_by_name(client: AsyncClient, admin_client: AsyncClient
         }])
     )
 
-    response = await admin_client.get("/cinemas", params={"name": "Test Cinema"})
+    response = await client.get("/cinemas", params={"name": "Test Cinema"})
 
     assert response.status_code == 200
 

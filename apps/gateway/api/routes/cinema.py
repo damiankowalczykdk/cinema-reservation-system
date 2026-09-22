@@ -8,11 +8,11 @@ router = APIRouter(prefix="/cinemas", tags=["Cinemas"])
 async def create_cinema(payload: CreateCinema, cinema_client: CinemaServiceClient) -> CinemaRead:
     return await cinema_client.request("POST", "/cinema/", json=payload.model_dump())
 
-@router.get("/{cinema_id}", response_model=CinemaRead, status_code=status.HTTP_200_OK, summary="Cinema by ID", dependencies=[admin])
+@router.get("/{cinema_id}", response_model=CinemaRead, status_code=status.HTTP_200_OK, summary="Cinema by ID")
 async def get_cinema_by_id(cinema_id: int, cinema_client: CinemaServiceClient) -> CinemaRead:
     return await cinema_client.request("GET", f"/cinema/{cinema_id}")
 
-@router.get("", response_model=list[CinemaRead], status_code=status.HTTP_200_OK, summary="Cinema by name", dependencies=[admin])
+@router.get("", response_model=list[CinemaRead], status_code=status.HTTP_200_OK, summary="Cinema by name")
 async def get_cinema_by_name(name: str, cinema_client: CinemaServiceClient) -> list[CinemaRead]:
     return await cinema_client.request("GET", f"/cinema/", params={"name": name})
 

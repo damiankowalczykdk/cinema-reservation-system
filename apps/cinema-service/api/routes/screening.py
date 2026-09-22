@@ -1,13 +1,21 @@
-from fastapi import APIRouter, status
+from typing import Annotated
+
+from fastapi import APIRouter, status, Depends
 from api.dependencies import ScreeningServiceDep
 from domain.models.screening import Screening
-from domain.schemas.screening import ScreeningRead, CreateScreening, UpdateScreening
+from domain.schemas.screening import ScreeningRead, CreateScreening, UpdateScreening, SearchScreeningRead, \
+    SearchScreening
 
 router = APIRouter(prefix="/screening", tags=["screening"])
 
 @router.post("/", response_model=ScreeningRead, status_code=status.HTTP_201_CREATED, summary="Create a new screening")
 async def create_screening(payload: CreateScreening, service: ScreeningServiceDep) -> Screening:
     return await service.create_screening(payload)
+
+@router.get("/search", response_model=list[SearchScreeningRead], status_code=status.HTTP_200_OK, summary="Search screenings")
+async def search_screenings(payload: Annotated[SearchScreening, Depends()], service: ScreeningServiceDep) -> list[SearchScreeningRead]:
+    rows = await service.search_screening(payload)
+    return [SearchScreeningRead(**row) for row in rows]
 
 @router.get("/{screening_id}", response_model=ScreeningRead, status_code=status.HTTP_200_OK, summary="Get screening")
 async def get_screening_by_id(screening_id: int, service: ScreeningServiceDep) -> Screening:

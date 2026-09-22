@@ -7,7 +7,7 @@ from core.config import settings
 from core.exceptions import ConflictException
 from core.http_client import ServiceRequestClient
 from domain.model.payment import Payment, Status
-from domain.schemas.payment import CreatePayment, CheckoutSessionRead, ReservationRead, Status as ReservationStatus
+from domain.schemas.payment import CreatePayment, CheckoutSessionRead, ReservationRead
 from repository.payment import PaymentRepository
 
 
@@ -75,7 +75,7 @@ class PaymentService:
                         },
                     ],
                     'mode': 'payment',
-                    'success_url': f"{settings.frontend_url}/?session_id={{CHECKOUT_SESSION_ID}}",
+                    'success_url': f"{settings.frontend_url}/booking/confirmation?session_id={{CHECKOUT_SESSION_ID}}",
                     'metadata': {'reservation_id': str(create_payment.reservation_id)},
                     # Provide a name (for example, hosted_web_0001) to label this Checkout integration and measure its conversion independently
                     'integration_identifier': 'cinema-reservation-checkout',
@@ -149,8 +149,8 @@ class PaymentService:
                 event.data.object.id,
                 event.type,
                 event.data.object.payment_status,
-                int(event.data.object.metadata.get("reservation_id")
-                    )
+                int(event.data.object.metadata.reservation_id)
             )
+
 
         return Response(status_code=200)

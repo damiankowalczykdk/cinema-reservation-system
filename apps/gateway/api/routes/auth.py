@@ -67,7 +67,7 @@ async def auth_callback(request: Request, code: str, state: str):
 
         return response
 
-@router.get("/me", response_model=TokenPayload)
+@router.get("/me", response_model=TokenPayload, response_model_by_alias=False)
 async def get_current_user(user: CurrentUser) -> TokenPayload:
     return user
 

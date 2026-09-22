@@ -107,6 +107,9 @@ class ReservationService:
     async def set_confirm_reservation(self, reservation_id: int) -> None:
         reservation = await self._check_reservation(reservation_id)
 
+        if reservation.status == Status.CANCELLED:
+            raise ConflictException("Reservation already cancelled")
+
         if reservation.status != Status.CONFIRMED:
             reservation.status = Status.CONFIRMED
 

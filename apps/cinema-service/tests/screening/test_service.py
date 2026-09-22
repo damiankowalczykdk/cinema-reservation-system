@@ -23,12 +23,17 @@ def mock_repo_hall() -> AsyncMock:
     return AsyncMock()
 
 @pytest.fixture
+def mock_repo_cinema() -> AsyncMock:
+    return AsyncMock()
+
+@pytest.fixture
 def service_screening(
         mock_repo_screening: AsyncMock,
         mock_repo_movie: AsyncMock,
-        mock_repo_hall: AsyncMock
+        mock_repo_hall: AsyncMock,
+        mock_repo_cinema: AsyncMock
 ) -> ScreeningService:
-    return ScreeningService(mock_repo_screening, mock_repo_movie, mock_repo_hall)
+    return ScreeningService(mock_repo_screening, mock_repo_movie, mock_repo_hall, mock_repo_cinema)
 
 async def test_create_screening(
         service_screening: ScreeningService,

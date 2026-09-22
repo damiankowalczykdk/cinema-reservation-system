@@ -61,9 +61,10 @@ ScreeningRepoDep = Annotated[ScreeningRepository, Depends(get_screening_reposito
 def get_screening_service(
         screening_repository: ScreeningRepoDep,
         movie_repository: MovieRepoDep,
-        hall_repository: HallRepoDep
+        hall_repository: HallRepoDep,
+        cinema_repository: CinemaRepoDep
 ) -> ScreeningService:
-    return ScreeningService(screening_repository, movie_repository, hall_repository)
+    return ScreeningService(screening_repository, movie_repository, hall_repository, cinema_repository)
 
 ScreeningServiceDep = Annotated[ScreeningService, Depends(get_screening_service)]
 

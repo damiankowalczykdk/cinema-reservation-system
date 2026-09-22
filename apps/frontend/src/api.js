@@ -96,6 +96,12 @@ const createScreening = (payload) => request('POST', '/screenings/', { body: pay
 const getScreeningById = (id) => request('GET', `/screenings/${id}`)
 const updateScreening = (id, patch) => request('PATCH', `/screenings/${id}`, { body: patch })
 const deleteScreening = (id) => request('DELETE', `/screenings/${id}`)
+// public browse endpoint: denormalized rows (movie_title, cinema_name already joined in),
+// so pages don't need to separately fetch /movies or /cinemas to display a listing
+const searchScreenings = ({ movieId, cinemaId, dateFrom, dateTo } = {}) =>
+  request('GET', '/screenings/search', {
+    params: { movie_id: movieId, cinema_id: cinemaId, date_from: dateFrom, date_to: dateTo },
+  })
 
 // --- reservations ---
 // Identity is inferred by the gateway from your session cookie, not sent explicitly:
@@ -137,6 +143,7 @@ export {
   getScreeningById,
   updateScreening,
   deleteScreening,
+  searchScreenings,
   createReservation,
   getReservationById,
   getUserReservations,

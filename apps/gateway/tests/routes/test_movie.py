@@ -36,7 +36,7 @@ async def test_create_movie(client: AsyncClient, admin_client: AsyncClient, test
     assert data["genre"] == "crime"
 
 @respx.mock
-async def test_get_movie_by_id(client: AsyncClient, admin_client: AsyncClient, test_settings: Auth0Settings) -> None:
+async def test_get_movie_by_id(client: AsyncClient, test_settings: Auth0Settings) -> None:
 
     respx.get(f"{test_settings.cinema_service_url}/movie/1").mock(
         return_value=Response(200, json={
@@ -49,14 +49,14 @@ async def test_get_movie_by_id(client: AsyncClient, admin_client: AsyncClient, t
         })
     )
 
-    response = await admin_client.get("/movies/1")
+    response = await client.get("/movies/1")
     data = response.json()
     assert response.status_code == 200
 
     assert data["title"] == "Movie Title"
 
 @respx.mock
-async def test_get_movie_by_title(client: AsyncClient, admin_client: AsyncClient, test_settings: Auth0Settings) -> None:
+async def test_get_movie_by_title(client: AsyncClient, test_settings: Auth0Settings) -> None:
     respx.get(f"{test_settings.cinema_service_url}/movie/", params={"title": "Movie Title"}).mock(
         return_value=Response(200, json=[{
             "id": 1,
@@ -68,7 +68,7 @@ async def test_get_movie_by_title(client: AsyncClient, admin_client: AsyncClient
         }])
     )
 
-    response = await admin_client.get("/movies", params={"title": "Movie Title"})
+    response = await client.get("/movies", params={"title": "Movie Title"})
 
     data = response.json()
     assert response.status_code == 200

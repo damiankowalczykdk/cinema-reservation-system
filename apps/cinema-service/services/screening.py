@@ -1,9 +1,12 @@
 from datetime import timedelta
+from typing import Sequence
+from sqlalchemy import Row, RowMapping
 from core.exceptions import NotFoundException, ConflictException
 from domain.models.hall import Hall
 from domain.models.movie import Movie
 from domain.models.screening import Screening
-from domain.schemas.screening import CreateScreening, UpdateScreening
+from domain.schemas.screening import CreateScreening, UpdateScreening, SearchScreening
+from repositories.cinema import CinemaRepository
 from repositories.hall import HallRepository
 from repositories.movie import MovieRepository
 from repositories.screening import ScreeningRepository
@@ -13,11 +16,13 @@ class ScreeningService:
     def __init__(self,
                  screening_repository: ScreeningRepository,
                  movie_repository: MovieRepository,
-                 hall_repository: HallRepository
+                 hall_repository: HallRepository,
+                 cinema_repository: CinemaRepository
     ) -> None:
         self.screening_repository = screening_repository
         self.movie_repository = movie_repository
         self.hall_repository = hall_repository
+        self.cinema_repository = cinema_repository
 
     async def create_screening(self, create_screening: CreateScreening) -> Screening:
         movie = await self._check_movie_by_id(create_screening.movie_id)
@@ -78,6 +83,28 @@ class ScreeningService:
     async def delete_screening_by_id(self, screening_id: int) -> None:
         await self._check_screening_by_id(screening_id)
         await self.screening_repository.delete_by_id(screening_id)
+
+
+    async def search_screening(
+            self,
+            search_screening: SearchScreening
+    ) -> Sequence[RowMapping]:
+
+        if search_screening.movie_id is not None:
+            await self._check_movie_by_id(search_screening.movie_id)
+
+        if search_screening.cinema_id is not None:
+            await self.cinema_repository.get_by_id(search_screening.cinema_id)
+
+        screenings = await self.screening_repository.get_search_screenings(
+            search_screening.movie_id,
+            search_screening.cinema_id,
+            search_screening.date_from,
+            search_screening.date_to
+        )
+
+        return screenings
+
 
 
     async def _check_screening_by_id(self, screening_id: int) -> Screening:
