@@ -1,6 +1,8 @@
 from api.dependencies import CinemaServiceClient, admin, CurrentUser
+from core.security import get_current_user
+from domain.schemas.auth import TokenPayload
 from domain.schemas.reservation import ReservationRead, CreateReservation, OccupiedSeatsRead
-from fastapi import APIRouter, status
+from fastapi import APIRouter, status, Depends
 
 router = APIRouter(prefix="/reservations", tags=["reservations"])
 
@@ -13,7 +15,7 @@ router = APIRouter(prefix="/reservations", tags=["reservations"])
 async def create_reservation(
         payload: CreateReservation,
         reservation_client: CinemaServiceClient,
-        current_user: CurrentUser
+        current_user: TokenPayload | None = Depends(get_current_user)
 ) -> ReservationRead:
 
     return await reservation_client.request(

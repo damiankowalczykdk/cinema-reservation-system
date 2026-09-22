@@ -104,6 +104,13 @@ class ReservationService:
 
         return OccupiedSeatsRead(seats=seats, row=hall.rows, seat_per_row=hall.seats_per_row)
 
+    async def set_confirm_reservation(self, reservation_id: int) -> None:
+        reservation = await self._check_reservation(reservation_id)
+
+        if reservation.status != Status.CONFIRMED:
+            reservation.status = Status.CONFIRMED
+
+        await self.reservation_repository.add(reservation)
 
 
     async def _check_reservation(self, reservation_id: int) -> Reservation:

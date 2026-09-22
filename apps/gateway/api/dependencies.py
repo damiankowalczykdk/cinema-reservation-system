@@ -16,14 +16,24 @@ def get_httpx_client(request: Request) -> httpx.AsyncClient:
 
 HttpClient = Annotated[httpx.AsyncClient, Depends(get_httpx_client)]
 
-def get_client_client(client: HttpClient, settings: AuthSettings) -> ServiceRequestClient:
+
+# CINEMA-SERVICE
+
+def get_cinema_client(client: HttpClient, settings: AuthSettings) -> ServiceRequestClient:
     return ServiceRequestClient(client, settings.cinema_service_url)
 
-CinemaServiceClient = Annotated[ServiceRequestClient, Depends(get_client_client)]
+CinemaServiceClient = Annotated[ServiceRequestClient, Depends(get_cinema_client)]
 
-CurrentUser = Annotated[TokenPayload, Depends(require_current_user)]
+# PAYMENT-SERVICE
+
+def get_payment_client(client: HttpClient, settings: AuthSettings) -> ServiceRequestClient:
+    return ServiceRequestClient(client, settings.payment_service_url)
+
+PaymentServiceClient = Annotated[ServiceRequestClient, Depends(get_payment_client)]
 
 # ROLES
+
+CurrentUser = Annotated[TokenPayload, Depends(require_current_user)]
 
 admin = Depends(require_roles("admin"))
 user = Depends(require_roles("user"))

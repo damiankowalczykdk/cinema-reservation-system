@@ -6,6 +6,7 @@ from core.exceptions import APIException
 
 logger = logging.getLogger(__name__)
 
+
 def register_error_handlers(app: FastAPI) -> None:
 
     @app.exception_handler(APIException)
