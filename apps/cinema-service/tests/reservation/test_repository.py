@@ -64,6 +64,7 @@ async def test_get_user_by_id(db_session: AsyncSession) -> None:
 
     reservation = Reservation(
         screening_id=1,
+        group_id=1,
         user_id="test123",
         row=1,
         seat=1,
@@ -71,9 +72,9 @@ async def test_get_user_by_id(db_session: AsyncSession) -> None:
         price_paid=Decimal("19.99")
     )
 
-    await reservation_repo.add(reservation)
+    await reservation_repo.add_all([reservation])
 
-    result = await reservation_repo.get_user_by_id("test123")
+    result = await reservation_repo.get_by_user_id("test123")
 
     assert result[0].row == 1
     assert result[0].seat == 1
@@ -127,6 +128,7 @@ async def test_get_active_reservation_for_screening(db_session: AsyncSession) ->
     reservation = Reservation(
         id=1,
         screening_id=1,
+        group_id=1,
         user_id="test123",
         row=1,
         seat=1,
@@ -134,7 +136,7 @@ async def test_get_active_reservation_for_screening(db_session: AsyncSession) ->
         price_paid=Decimal("19.99")
     )
 
-    await reservation_repo.add(reservation)
+    await reservation_repo.add_all([reservation])
 
     result = await reservation_repo.get_active_reservation_for_screening(reservation.id)
 

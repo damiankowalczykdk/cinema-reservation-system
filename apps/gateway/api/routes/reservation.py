@@ -8,7 +8,7 @@ router = APIRouter(prefix="/reservations", tags=["reservations"])
 
 @router.post(
     "/",
-    response_model=ReservationRead,
+    response_model=list[ReservationRead],
     status_code=status.HTTP_201_CREATED,
     summary="Create a new reservation"
 )
@@ -16,7 +16,7 @@ async def create_reservation(
         payload: CreateReservation,
         reservation_client: CinemaServiceClient,
         current_user: TokenPayload | None = Depends(get_current_user)
-) -> ReservationRead:
+) -> list[ReservationRead]:
 
     return await reservation_client.request(
         "POST",
@@ -25,14 +25,14 @@ async def create_reservation(
         headers={"X-User-Id": current_user.sub} if current_user else None
     )
 @router.get(
-    "/{reservation_id}",
-    response_model=ReservationRead,
+    "/{group_id}",
+    response_model=list[ReservationRead],
     status_code=status.HTTP_200_OK,
-    summary="Get reservation",
+    summary="Get reservations",
     dependencies=[admin]
 )
-async def get_reservation_by_id(reservation_id: int, reservation_client: CinemaServiceClient) -> ReservationRead:
-    return await reservation_client.request("GET", f"/reservation/{reservation_id}")
+async def get_reservations_group_by_id(group_id: int, reservation_client: CinemaServiceClient) -> list[ReservationRead]:
+    return await reservation_client.request("GET", f"/reservation/{group_id}")
 
 @router.get(
     "/",
@@ -47,16 +47,16 @@ async def get_user_reservations(
     return await reservation_client.request("GET", f"/reservation/", headers={"X-User-Id": current_user.sub})
 
 @router.post(
-    "/{reservation_id}/cancel",
-    response_model=ReservationRead,
+    "/{group_id}/cancel",
+    response_model=list[ReservationRead],
     status_code=status.HTTP_200_OK,
     summary="Cancel reservation"
 )
 async def cancel_reservation(
-        reservation_id: int,
+        group_id: int,
         reservation_client: CinemaServiceClient,
         current_user: CurrentUser
-) -> ReservationRead:
+) -> list[ReservationRead]:
 
     headers = {"X-User-Id": current_user.sub}
     if "admin" in current_user.roles:
@@ -64,7 +64,7 @@ async def cancel_reservation(
 
     return await reservation_client.request(
         "POST",
-        f"/reservation/{reservation_id}/cancel",
+        f"/reservation/{group_id}/cancel",
         headers=headers
     )
 
@@ -79,10 +79,10 @@ async def get_occupied_seats(screening_id: int, reservation_client: CinemaServic
 
 
 @router.delete(
-    "/{reservation_id}",
+    "/{group_id}",
     status_code=status.HTTP_204_NO_CONTENT,
     summary="Delete reservation",
     dependencies=[admin]
 )
-async def delete_reservation_by_id(reservation_id: int, reservation_client: CinemaServiceClient) -> None:
-    await reservation_client.request("DELETE", f"/reservation/{reservation_id}")
+async def delete_reservation_group(group_id: int, reservation_client: CinemaServiceClient) -> None:
+    await reservation_client.request("DELETE", f"/reservation/{group_id}")

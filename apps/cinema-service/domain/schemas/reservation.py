@@ -1,13 +1,16 @@
 from decimal import Decimal
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 from domain.models.reservation import Status
+
+class SeatInput(BaseModel):
+    row: int
+    seat: int
 
 
 class CreateReservation(BaseModel):
     screening_id: int
-    row: int
-    seat: int
+    seats: list[SeatInput] = Field(min_length=1)
     guest_email: str | None = None
     guest_name: str | None = None
 
@@ -23,11 +26,15 @@ class OccupiedSeatsRead(BaseModel):
     row: int
     seat_per_row: int
 
+class GroupTotalRead(BaseModel):
+    total_price: Decimal
+
 class ReservationRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: int
     screening_id: int
+    group_id: int
     user_id: str | None = None
     guest_email: str | None = None
     guest_name: str | None = None

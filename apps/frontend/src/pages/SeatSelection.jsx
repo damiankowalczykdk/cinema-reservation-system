@@ -29,8 +29,14 @@ function SeatSelection() {
   const [guestForm, setGuestForm] = useState(emptyGuestForm())
   const [creating, setCreating] = useState(false)
   const [createError, setCreateError] = useState(null)
-  const [createdReservations, setCreatedReservations] = useState([])
-  const [payingId, setPayingId] = useState(null)
+  const [booking, setBooking] = useState(null) // seat rows of the just-created group
+  const [paying, setPaying] = useState(false)
+
+  async function refreshOccupied() {
+    const seatsData = await getOccupiedSeats(screeningId)
+    setOccupied(new Set(seatsData.seats.map(([row, seat]) => seatKey(row, seat))))
+    return seatsData
+  }
 
   useEffect(() => {
     let cancelled = false
@@ -66,11 +72,11 @@ function SeatSelection() {
     )
   }
 
-  async function payFor(reservation) {
-    setPayingId(reservation.id)
+  async function payFor(groupId) {
+    setPaying(true)
     try {
       const { checkout_url } = await createPayment({
-        reservation_id: reservation.id,
+        group_id: groupId,
         guest_email: guestForm.guest_email || undefined,
       })
       // full browser navigation, not fetch — Stripe's checkout page is a different
@@ -78,7 +84,7 @@ function SeatSelection() {
       window.location.href = checkout_url
     } catch (err) {
       setCreateError(err.message)
-      setPayingId(null)
+      setPaying(false)
     }
   }
 
@@ -88,24 +94,22 @@ function SeatSelection() {
     setCreating(true)
     setCreateError(null)
 
-    // backend only knows how to reserve one seat per call, so this fires one
-    // request per selected seat and reports which succeeded/failed individually
-    const created = []
-    const failed = []
-    for (const s of selectedSeats) {
-      try {
-        created.push(
-          await createReservation({
-            screening_id: Number(screeningId),
-            row: s.row,
-            seat: s.seat,
-            guest_email: guestForm.guest_email || undefined,
-            guest_name: guestForm.guest_name || undefined,
-          })
-        )
-      } catch (err) {
-        failed.push({ row: s.row, seat: s.seat, error: err.message })
-      }
+    // all selected seats go in one request: the backend books them atomically
+    // (all or nothing) under a single group_id, which is then paid in one checkout
+    let created
+    try {
+      created = await createReservation({
+        screening_id: Number(screeningId),
+        seats: selectedSeats,
+        guest_email: guestForm.guest_email || undefined,
+        guest_name: guestForm.guest_name || undefined,
+      })
+    } catch (err) {
+      setCreateError(`${err.message} — nothing was booked. Pick different seats and try again.`)
+      setCreating(false)
+      // someone may have just taken a seat: reload so the map shows it as occupied
+      refreshOccupied().catch(() => {})
+      return
     }
 
     setOccupied((prev) => {
@@ -113,21 +117,14 @@ function SeatSelection() {
       created.forEach((r) => next.add(seatKey(r.row, r.seat)))
       return next
     })
-    setSelectedSeats(failed.map((f) => ({ row: f.row, seat: f.seat })))
-    setCreatedReservations(created)
-    setCreateError(
-      failed.length
-        ? `${failed.length} of ${selectedSeats.length} seat(s) could not be booked — someone may have just taken them. Retry the highlighted seat(s) below.`
-        : null
-    )
+    setSelectedSeats([])
+    setBooking(created)
     setCreating(false)
 
-    // checkout is one-reservation-at-a-time on the backend, so the single-seat,
-    // no-failures case can go straight to Stripe without an extra click
-    if (created.length === 1 && failed.length === 0) {
-      await payFor(created[0])
-    }
+    await payFor(created[0].group_id)
   }
+
+  const bookingTotal = booking ? booking.reduce((sum, r) => sum + Number(r.price_paid), 0) : 0
 
   if (loadError) return <p className="error">{loadError}</p>
   if (!screening || occupied === null) return <p>Loading…</p>
@@ -168,25 +165,22 @@ function SeatSelection() {
             </div>
           </>
         )}
-        <button type="submit" disabled={creating || selectedSeats.length === 0}>
+        <button type="submit" disabled={creating || paying || selectedSeats.length === 0}>
           {creating ? 'Booking…' : `Book ${selectedSeats.length || ''} seat${selectedSeats.length === 1 ? '' : 's'}`}
         </button>
       </form>
 
       {createError && <p className="error">{createError}</p>}
 
-      {createdReservations.length > 0 && (
-        <div className="grid">
-          {createdReservations.map((r) => (
-            <div className="panel" key={r.id}>
-              <p>
-                Row {r.row}, Seat {r.seat}
-              </p>
-              <button onClick={() => payFor(r)} disabled={payingId !== null}>
-                {payingId === r.id ? 'Redirecting…' : 'Pay for this seat'}
-              </button>
-            </div>
-          ))}
+      {booking && (
+        <div className="panel">
+          <p>
+            Booking #{booking[0].group_id}: {booking.map((r) => `R${r.row}-S${r.seat}`).join(', ')}
+          </p>
+          <p className="note">Total: {bookingTotal.toFixed(2)}</p>
+          <button onClick={() => payFor(booking[0].group_id)} disabled={paying}>
+            {paying ? 'Redirecting…' : 'Pay now'}
+          </button>
         </div>
       )}
     </div>

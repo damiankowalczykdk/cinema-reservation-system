@@ -1,5 +1,6 @@
 import stripe
 import logging
+from decimal import Decimal
 from fastapi import Response, Request
 from fastapi.exceptions import HTTPException
 from sqlalchemy.exc import IntegrityError
@@ -7,9 +8,8 @@ from core.config import settings
 from core.exceptions import ConflictException
 from core.http_client import ServiceRequestClient
 from domain.model.payment import Payment, Status
-from domain.schemas.payment import CreatePayment, CheckoutSessionRead, ReservationRead
+from domain.schemas.payment import CreatePayment, CheckoutSessionRead
 from repository.payment import PaymentRepository
-
 
 logger = logging.getLogger(__name__)
 
@@ -28,13 +28,16 @@ class PaymentService:
 
     async def create_checkout_session(self, create_payment: CreatePayment, user_id: str | None = None) -> CheckoutSessionRead:
 
-        reservation = ReservationRead.model_validate(await  self.cinema_client.request(
+        response: dict[str, str] = await self.cinema_client.request(
             "GET",
-            f"/reservation/{create_payment.reservation_id}"
+            f"/reservation/{create_payment.group_id}/total"
 
-        ))
+        )
 
-        reservation_active = await self.repository.get_by_active_reservation_id(create_payment.reservation_id)
+        amount = Decimal(response["total_price"]) * 100
+
+
+        reservation_active = await self.repository.get_by_active_reservation_id(create_payment.group_id)
 
         new_active_session = reservation_active is None
 
@@ -68,24 +71,24 @@ class PaymentService:
                         {
                             "price_data": {
                                 "currency": settings.default_currency,
-                                "product_data": {"name": f"Reservation {create_payment.reservation_id}"},
-                                "unit_amount": int(reservation.price_paid * 100)
+                                "product_data": {"name": f"Reservation {create_payment.group_id}"},
+                                "unit_amount": int(amount)
                             },
                             "quantity": 1
                         },
                     ],
                     'mode': 'payment',
                     'success_url': f"{settings.frontend_url}/booking/confirmation?session_id={{CHECKOUT_SESSION_ID}}",
-                    'metadata': {'reservation_id': str(create_payment.reservation_id)},
+                    'metadata': {'reservation_id': str(create_payment.group_id)},
                     # Provide a name (for example, hosted_web_0001) to label this Checkout integration and measure its conversion independently
                     'integration_identifier': 'cinema-reservation-checkout',
                 })
 
 
                 await self.repository.add(Payment(
-                    reservation_id=create_payment.reservation_id,
+                    reservation_id=create_payment.group_id,
                     user_id=user_id,
-                    amount=int(reservation.price_paid * 100),
+                    amount=int(amount),
                     currency=settings.default_currency,
                     status=Status.PENDING,
                     stripe_session_id=checkout_session.id

@@ -1,3 +1,4 @@
+from decimal import Decimal
 from typing import Sequence
 from core.exceptions import NotFoundException, ValidationException, ConflictException, UnauthorizedException
 from domain.models.reservation import Reservation, Status
@@ -18,7 +19,7 @@ class ReservationService:
         self.hall_repository = hall_repository
         self.screening_repository = screening_repository
 
-    async def create_reservation(self, create_reservation: CreateReservation, user_id: str | None = None) -> Reservation:
+    async def create_reservation(self, create_reservation: CreateReservation, user_id: str | None = None) -> list[Reservation]:
         screening = await self.screening_repository.get_by_id(create_reservation.screening_id)
         if not screening:
             raise NotFoundException("Screening not found")
@@ -27,65 +28,85 @@ class ReservationService:
         if not hall:
             raise NotFoundException("Hall not found")
 
-        is_valid_seat =  1 <= create_reservation.row <= hall.rows and 1 <= create_reservation.seat <= hall.seats_per_row
-        if not is_valid_seat:
-            raise ValidationException("Seat out of bounds for this hall")
-
         if bool(user_id) == bool(create_reservation.guest_email):
             raise ValidationException("Provide either user_id or guest_email, not both or neither")
 
         active_reservation = await self.reservation_repository.get_active_reservation_for_screening(screening.id)
 
-        if any(r.row == create_reservation.row and r.seat == create_reservation.seat for r in active_reservation):
-            raise ConflictException("Seat already reserved")
+        occupied = {(r.row, r.seat) for r in active_reservation}
 
-        reservation = Reservation(
-            screening_id=create_reservation.screening_id,
-            user_id=user_id,
-            guest_email=create_reservation.guest_email,
-            guest_name=create_reservation.guest_name,
-            row=create_reservation.row,
-            seat=create_reservation.seat,
-            status=Status.PENDING,
-            price_paid=screening.price
-        )
+        seen: set[tuple[int, int]] = set()
 
-        return await self.reservation_repository.add(reservation)
+        for s in create_reservation.seats:
+            if not (1 <= s.row <= hall.rows and 1 <= s.seat <= hall.seats_per_row):
+                raise ValidationException("Seat out of bounds for this hall")
+            if (s.row, s.seat) in seen:
+                raise ConflictException("Duplicate seat in reservation")
+            if (s.row, s.seat) in occupied:
+                raise ConflictException("Seat already reserved")
+            seen.add((s.row, s.seat))
+
+        group_id = await self.reservation_repository.next_group_id()
+
+        reservations: list[Reservation] = []
+
+        for s in create_reservation.seats:
+            reservations.append(Reservation(
+                screening_id=screening.id,
+                group_id=group_id,
+                user_id=user_id,
+                guest_email=create_reservation.guest_email,
+                guest_name=create_reservation.guest_name,
+                row=s.row,
+                seat=s.seat,
+                status=Status.PENDING,
+                price_paid=screening.price
+
+            ))
+
+        return await self.reservation_repository.add_all(reservations)
 
 
-    async def get_reservation_by_id(self, reservation_id: int) -> Reservation:
-        return await self._check_reservation(reservation_id)
+    async def get_reservations_by_group_id(self, group_id: int) -> Sequence[Reservation]:
+        return await self._check_group(group_id)
 
+    async def get_group_total(self, group_id: int) -> Decimal:
+        total_price = await self.reservation_repository.get_group_total(group_id)
+        if total_price is None:
+            raise NotFoundException("Group not found")
+        return total_price
 
     async def get_user_reservations(self, user_id: str | None) -> Sequence[Reservation]:
         if user_id is None:
             raise UnauthorizedException()
 
-        return await self.reservation_repository.get_user_by_id(user_id)
+        return await self.reservation_repository.get_by_user_id(user_id)
 
 
     async def cancel_reservation(
             self,
-            reservation_id: int,
+            group_id: int,
             user_id: str | None,
             is_admin: bool
-    ) -> Reservation:
+    ) -> Sequence[Reservation]:
 
-        reservation = await self._check_reservation(reservation_id)
+        reservations = await self._check_group(group_id)
 
-        is_owner = reservation.user_id is not None and reservation.user_id == user_id
-        if not(is_admin or is_owner):
+        owner_id = reservations[0].user_id
+        is_owner = owner_id is not None and owner_id == user_id
+        if not (is_admin or is_owner):
             raise NotFoundException("Reservation not allowed")
 
-        if reservation.status != Status.CANCELLED:
-            reservation.status = Status.CANCELLED
+        for r in reservations:
+            if r.status != Status.CANCELLED:
+                r.status = Status.CANCELLED
 
-        return await self.reservation_repository.add(reservation)
+        return await self.reservation_repository.add_all(list(reservations))
 
 
-    async def delete_reservation_by_id(self, reservation_id: int) -> None:
-        await self._check_reservation(reservation_id)
-        await self.reservation_repository.delete_by_id(reservation_id)
+    async def delete_reservation_group(self, group_id: int) -> None:
+        await self._check_group(group_id)
+        await self.reservation_repository.delete_reservation_group(group_id)
 
 
     async def get_occupied_seats(self, screening_id: int) -> OccupiedSeatsRead:
@@ -104,20 +125,21 @@ class ReservationService:
 
         return OccupiedSeatsRead(seats=seats, row=hall.rows, seat_per_row=hall.seats_per_row)
 
-    async def set_confirm_reservation(self, reservation_id: int) -> None:
-        reservation = await self._check_reservation(reservation_id)
+    async def set_confirm_reservation(self, group_id: int) -> None:
+        reservations = await self._check_group(group_id)
 
-        if reservation.status == Status.CANCELLED:
+        if any(r.status == Status.CANCELLED for r in reservations):
             raise ConflictException("Reservation already cancelled")
 
-        if reservation.status != Status.CONFIRMED:
-            reservation.status = Status.CONFIRMED
+        for r in reservations:
+            if r.status != Status.CONFIRMED:
+                r.status = Status.CONFIRMED
 
-        await self.reservation_repository.add(reservation)
+        await self.reservation_repository.add_all(list(reservations))
 
 
-    async def _check_reservation(self, reservation_id: int) -> Reservation:
-        reservation = await self.reservation_repository.get_by_id(reservation_id)
-        if not reservation:
+    async def _check_group(self, group_id: int) -> Sequence[Reservation]:
+        reservations = await self.reservation_repository.get_by_group_id(group_id)
+        if not reservations:
             raise NotFoundException("Reservation not found")
-        return reservation
+        return reservations

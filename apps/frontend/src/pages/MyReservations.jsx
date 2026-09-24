@@ -5,6 +5,28 @@ import { getUserReservations, cancelReservation } from '../api.js'
 
 const CANCELLABLE_STATUSES = new Set(['pending', 'confirmed'])
 
+// backend returns flat seat rows; one booking = all rows sharing a group_id
+function groupByBooking(rows) {
+  const groups = new Map()
+  for (const r of rows) {
+    if (!groups.has(r.group_id)) groups.set(r.group_id, [])
+    groups.get(r.group_id).push(r)
+  }
+  return [...groups.entries()]
+    .map(([groupId, seats]) => ({
+      groupId,
+      screeningId: seats[0].screening_id,
+      status: seats[0].status,
+      seats,
+      total: seats.reduce((sum, s) => sum + Number(s.price_paid), 0),
+    }))
+    .sort((a, b) => b.groupId - a.groupId) // newest first
+}
+
+function seatList(seats) {
+  return seats.map((s) => `R${s.row}-S${s.seat}`).join(', ')
+}
+
 function MyReservations() {
   const { user, loading: authLoading, login } = useAuth()
   const [reservations, setReservations] = useState(null)
@@ -36,11 +58,12 @@ function MyReservations() {
     )
   }
 
-  async function handleCancel(id) {
-    setCancellingId(id)
+  async function handleCancel(groupId) {
+    setCancellingId(groupId)
     try {
-      const updated = await cancelReservation(id)
-      setReservations((prev) => prev.map((r) => (r.id === id ? updated : r)))
+      const updated = await cancelReservation(groupId)
+      const updatedById = new Map(updated.map((r) => [r.id, r]))
+      setReservations((prev) => prev.map((r) => updatedById.get(r.id) ?? r))
     } catch (err) {
       setError(err.message)
     } finally {
@@ -49,36 +72,41 @@ function MyReservations() {
     }
   }
 
+  const bookings = reservations ? groupByBooking(reservations) : null
+
   return (
     <div>
       <h2>My Reservations</h2>
       {error && <p className="error">{error}</p>}
 
-      {reservations === null ? (
+      {bookings === null ? (
         <p>Loading…</p>
-      ) : reservations.length === 0 ? (
+      ) : bookings.length === 0 ? (
         <p className="note">No reservations yet.</p>
       ) : (
         <div className="grid">
-          {reservations.map((r) => (
-            <div className="panel" key={r.id}>
+          {bookings.map((b) => (
+            <div className="panel" key={b.groupId}>
               <p>
-                Screening #{r.screening_id} — Row {r.row}, Seat {r.seat}
+                Booking #{b.groupId} · Screening #{b.screeningId}
+              </p>
+              <p>
+                {b.seats.length} seat{b.seats.length === 1 ? '' : 's'}: {seatList(b.seats)}
               </p>
               <p className="note">
-                Status: {r.status} · Paid: {Number(r.price_paid).toFixed(2)}
+                Status: {b.status} · Total: {b.total.toFixed(2)}
               </p>
-              {CANCELLABLE_STATUSES.has(r.status) && (
-                <Dialog.Root open={confirmId === r.id} onOpenChange={(open) => setConfirmId(open ? r.id : null)}>
+              {CANCELLABLE_STATUSES.has(b.status) && (
+                <Dialog.Root open={confirmId === b.groupId} onOpenChange={(open) => setConfirmId(open ? b.groupId : null)}>
                   <Dialog.Trigger asChild>
-                    <button className="btn-danger">Cancel</button>
+                    <button className="btn-danger">Cancel booking</button>
                   </Dialog.Trigger>
                   <Dialog.Portal>
                     <Dialog.Overlay className="dialog-overlay" />
                     <Dialog.Content className="dialog-content">
-                      <Dialog.Title>Cancel this reservation?</Dialog.Title>
+                      <Dialog.Title>Cancel this booking?</Dialog.Title>
                       <Dialog.Description>
-                        Row {r.row}, Seat {r.seat} — this can't be undone.
+                        All seats ({seatList(b.seats)}) will be released — this can't be undone.
                       </Dialog.Description>
                       <div className="dialog-actions">
                         <Dialog.Close asChild>
@@ -86,10 +114,10 @@ function MyReservations() {
                         </Dialog.Close>
                         <button
                           className="btn-danger"
-                          onClick={() => handleCancel(r.id)}
-                          disabled={cancellingId === r.id}
+                          onClick={() => handleCancel(b.groupId)}
+                          disabled={cancellingId === b.groupId}
                         >
-                          {cancellingId === r.id ? 'Cancelling…' : 'Yes, cancel'}
+                          {cancellingId === b.groupId ? 'Cancelling…' : 'Yes, cancel'}
                         </button>
                       </div>
                     </Dialog.Content>

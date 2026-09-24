@@ -5,6 +5,7 @@ const TABS = [
   { path: 'halls', label: 'Halls' },
   { path: 'movies', label: 'Movies' },
   { path: 'screenings', label: 'Screenings' },
+  { path: 'reservations', label: 'Reservations' },
 ]
 
 const linkClass = ({ isActive }) => `nav-item${isActive ? ' nav-item--active' : ''}`
