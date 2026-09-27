@@ -1,4 +1,4 @@
-from api.dependencies import CinemaServiceClient, admin, CurrentUser
+from api.dependencies import CinemaServiceClient, admin, CurrentUser, PaymentServiceClient
 from core.security import get_current_user
 from domain.schemas.auth import TokenPayload
 from domain.schemas.reservation import ReservationRead, CreateReservation, OccupiedSeatsRead
@@ -55,6 +55,7 @@ async def get_user_reservations(
 async def cancel_reservation(
         group_id: int,
         reservation_client: CinemaServiceClient,
+        payment_client: PaymentServiceClient,
         current_user: CurrentUser
 ) -> list[ReservationRead]:
 
@@ -62,11 +63,17 @@ async def cancel_reservation(
     if "admin" in current_user.roles:
         headers["X-Is-Admin"] = "true"
 
-    return await reservation_client.request(
+    resp: list[ReservationRead] = await reservation_client.request(
         "POST",
         f"/reservation/{group_id}/cancel",
         headers=headers
     )
+
+    await payment_client.request(
+        "POST",
+        f"/payment/{group_id}/refund"
+    )
+    return resp
 
 @router.get(
     "/screening/{screening_id}/seats",

@@ -80,6 +80,26 @@ async def test_get_screening_by_id(client: AsyncClient, test_settings: Auth0Sett
 
 
 @respx.mock
+async def test_search_screening(client: AsyncClient, test_settings: Auth0Settings) -> None:
+    respx.get(f"{test_settings.cinema_service_url}/screening/search?movie_id=1&cinema_id=1").mock(
+        return_value=Response(200, json=[{
+            "screening_id": 1,
+            "movie_id": 1,
+            "movie_title": "Movie",
+            "cinema_id": 1,
+            "cinema_name": "Test",
+            "hall_id": 1,
+            "start_time": "2026-09-06T18:00:00Z",
+            "price": 19.99
+        }])
+    )
+
+    response = await client.get(f"/screenings/search", params={"movie_id": 1, "cinema_id": 1})
+    data = response.json()[0]
+    assert response.status_code == 200
+    assert data["movie_id"] == 1
+
+@respx.mock
 async def test_get_screening_by_id_as_user(client: AsyncClient, user_client: AsyncClient, test_settings: Auth0Settings) -> None:
     respx.get(f"{test_settings.cinema_service_url}/screening/1").mock(
         return_value=Response(200, json={

@@ -95,7 +95,7 @@ class ReservationService:
         owner_id = reservations[0].user_id
         is_owner = owner_id is not None and owner_id == user_id
         if not (is_admin or is_owner):
-            raise NotFoundException("Reservation not allowed")
+            raise NotFoundException("Group not found")
 
         for r in reservations:
             if r.status != Status.CANCELLED:

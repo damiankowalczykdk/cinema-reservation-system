@@ -28,9 +28,9 @@ class PaymentRepository:
         return result.scalar_one_or_none()
 
 
-    async def get_by_active_reservation_id(self, reservation_id: int) -> Payment | None:
+    async def get_by_active_group_id(self, group_id: int) -> Payment | None:
         result = await self.session.execute(select(Payment)
-            .where(Payment.reservation_id == reservation_id, Payment.status != Status.FAILED))
+                                            .where(Payment.group_id == group_id, Payment.status != Status.FAILED))
         return result.scalar_one_or_none()
 
     async def get_all(self) -> Sequence[Payment]:

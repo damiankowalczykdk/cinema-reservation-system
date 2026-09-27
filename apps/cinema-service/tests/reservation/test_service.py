@@ -96,6 +96,38 @@ async def test_create_reservation_not_found_hall(
     with pytest.raises(NotFoundException, match="Hall not found"):
         await reservation_service.create_reservation(create_reservation, user_id="test123")
 
+async def test_create_reservation_duplicate_seat(
+        reservation_service: ReservationService,
+        mock_repo_screening: AsyncMock,
+        mock_repo_hall: AsyncMock
+) -> None:
+    screening = Screening(
+        id=1,
+        movie_id=1,
+        hall_id=1,
+        start_time=datetime(2026, 8, 26, 18, 0, 0),
+        price=Decimal("19.99")
+    )
+
+    hall = Hall(
+        id=1,
+        cinema_id=1,
+        name="Test Hall",
+        rows=10,
+        seats_per_row=10
+    )
+
+    mock_repo_screening.get_by_id = AsyncMock(return_value=screening)
+    mock_repo_hall.get_by_id = AsyncMock(return_value=hall)
+
+    create_reservation = CreateReservation(
+        screening_id=1,
+        seats=[SeatInput(row=1, seat=2), SeatInput(row=1, seat=2)]
+    )
+
+    with pytest.raises(ConflictException, match="Duplicate seat in reservation"):
+        await reservation_service.create_reservation(create_reservation, user_id="test123")
+
 async def test_create_reservation_if_provide_user_id_and_guest_email(
         reservation_service: ReservationService,
         mock_repo_screening: AsyncMock,
@@ -266,6 +298,15 @@ async def test_get_user_reservations_if_unauthorized(
     with pytest.raises(UnauthorizedException):
         await reservation_service.get_user_reservations(user_id=None)
 
+async def test_get_group_total_not_found(
+        reservation_service: ReservationService,
+        mock_repo_reservation: AsyncMock
+) -> None:
+    mock_repo_reservation.get_group_total = AsyncMock(return_value=None)
+
+    with pytest.raises(NotFoundException, match="Group not found"):
+        await reservation_service.get_group_total(1)
+
 
 async def test_cancel_reservation_success(
         reservation_service: ReservationService,
@@ -308,7 +349,7 @@ async def test_cancel_reservation_not_allowed(
 
     mock_repo_reservation.get_by_id = AsyncMock(return_value=reservation)
 
-    with pytest.raises(NotFoundException, match="Reservation not allowed"):
+    with pytest.raises(NotFoundException, match="Group not found"):
         await reservation_service.cancel_reservation(1, "test1234", False)
 
 
@@ -408,4 +449,27 @@ async def test_occupied_seats_not_found_hall(
     with pytest.raises(NotFoundException, match="Hall not found"):
 
         await reservation_service.get_occupied_seats(1)
+
+
+async def test_set_confirm_reservation_already_canceled(
+        reservation_service: ReservationService,
+        mock_repo_reservation: AsyncMock
+) -> None:
+    reservation = ReservationRead(
+        id=5,
+        screening_id=1,
+        group_id=2,
+        user_id="test123",
+        row=1,
+        seat=1,
+        status=Status.CANCELLED,
+        price_paid=Decimal("19.99")
+    )
+
+    mock_repo_reservation.get_by_group_id = AsyncMock(return_value=[reservation])
+
+    with pytest.raises(ConflictException, match="Reservation already cancelled"):
+        await reservation_service.set_confirm_reservation(reservation.id)
+
+
 

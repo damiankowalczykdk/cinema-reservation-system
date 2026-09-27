@@ -97,12 +97,22 @@ async def test_cancel_reservation(client: AsyncClient, user_client: AsyncClient,
             "price_paid": 100
         }])
     )
-
+    respx.post(f"{test_settings.payment_service_url}/payment/1/refund").mock(
+        return_value=Response(204)
+    )
     response = await user_client.post("/reservations/1/cancel")
 
     assert response.status_code == 200
     data = response.json()[0]
     assert data["user_id"] == "test123user"
+
+@respx.mock
+async def test_cancel_reservation_anonymous_unauthorized(client: AsyncClient, test_settings: Auth0Settings) -> None:
+
+    response = await client.post("/reservations/1/cancel")
+
+    assert response.status_code == 401
+
 
 @respx.mock
 async def test_cancel_reservation_if_is_admin(client: AsyncClient, admin_client: AsyncClient, test_settings: Auth0Settings) -> None:
@@ -119,6 +129,9 @@ async def test_cancel_reservation_if_is_admin(client: AsyncClient, admin_client:
             "status": "pending",
             "price_paid": 100
         }], headers={"X-Is-Amin": "true"})
+    )
+    respx.post(f"{test_settings.payment_service_url}/payment/1/refund").mock(
+        return_value=Response(204)
     )
 
     response = await admin_client.post("/reservations/1/cancel")
