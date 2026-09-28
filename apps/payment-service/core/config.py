@@ -19,6 +19,8 @@ class Settings(BaseSettings):
 
     default_currency: str = "usd"
 
+    checkout_session_ttl_minutes: int
+
     @property
     def POSTGRES_URI(self) -> str:
         return f"postgresql+asyncpg://{self.postgres_payment_user}:{self.postgres_payment_password}@{self.postgres_payment_host}:{self.postgres_payment_port}/{self.postgres_payment_db}"

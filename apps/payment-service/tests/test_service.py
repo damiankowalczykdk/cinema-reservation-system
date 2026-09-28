@@ -1,11 +1,9 @@
 import json
-from unittest.mock import AsyncMock, MagicMock
-
 import pytest
 import stripe
 from fastapi import HTTPException
+from unittest.mock import AsyncMock, MagicMock
 from sqlalchemy.exc import IntegrityError
-
 from core.config import settings
 from core.exceptions import ConflictException
 from domain.model.payment import Payment, Status
@@ -47,6 +45,22 @@ def payment_service_stripe_expired(fake_cinema_client, fake_stripe_client_expire
         repository=mock_repository,
         client=fake_stripe_client_expired,
         cinema_client=fake_cinema_client
+    )
+
+@pytest.fixture
+def payment_service_cinema_conflict(fake_cinema_client_conflict, fake_stripe_client, mock_repository):
+    return PaymentService(
+        repository=mock_repository,
+        client=fake_stripe_client,
+        cinema_client=fake_cinema_client_conflict
+    )
+
+@pytest.fixture
+def payment_service_cinema_unavailable(fake_cinema_client_unavailable, fake_stripe_client, mock_repository):
+    return PaymentService(
+        repository=mock_repository,
+        client=fake_stripe_client,
+        cinema_client=fake_cinema_client_unavailable
     )
 
 async def test_create_checkout_session_if_pending_return_existing_url(payment_service: PaymentService, mock_repository) -> None:
@@ -205,6 +219,66 @@ async def test_fulfill_success(payment_service: PaymentService, mock_repository)
     await payment_service.fulfill(stripe_session_id="102", event_type="checkout.session.completed", payment_status="paid", group_id=1)
 
     mock_repository.update.assert_called_once()
+
+
+async def test_fulfill_reservation_cancelled_refunds_payment(payment_service_cinema_conflict: PaymentService, mock_repository) -> None:
+    payment = Payment(
+        group_id=1,
+        user_id="test123user",
+        amount=100,
+        currency="USD",
+        status=Status.PENDING,
+        stripe_session_id="102"
+    )
+
+    mock_repository.get_by_stripe_session_id = AsyncMock(return_value=payment)
+
+    await payment_service_cinema_conflict.fulfill(stripe_session_id="102", event_type="checkout.session.completed",
+                                  payment_status="paid", group_id=1)
+
+    assert payment.status == Status.REFUNDED
+    mock_repository.update.assert_called_once()
+
+async def test_fulfill_cinema_unavailable_payment(
+        payment_service_cinema_unavailable: PaymentService, mock_repository, fake_stripe_client) -> None:
+    payment = Payment(
+        group_id=1,
+        user_id="test123user",
+        amount=100,
+        currency="USD",
+        status=Status.PENDING,
+        stripe_session_id="102"
+    )
+
+    mock_repository.get_by_stripe_session_id = AsyncMock(return_value=payment)
+
+    with pytest.raises(HTTPException):
+        await payment_service_cinema_unavailable.fulfill(stripe_session_id="102", event_type="checkout.session.completed",
+                                  payment_status="paid", group_id=1)
+
+    mock_repository.update.assert_not_called()
+    fake_stripe_client.v1.refunds.create.assert_not_called()
+
+async def test_fulfill_already_refunded_skips(payment_service: PaymentService, mock_repository, fake_stripe_client) -> None:
+    payment = Payment(
+        group_id=1,
+        user_id="test123user",
+        amount=100,
+        currency="USD",
+        status=Status.REFUNDED,
+        stripe_session_id="102"
+    )
+
+    mock_repository.get_by_stripe_session_id = AsyncMock(return_value=payment)
+
+    await payment_service.fulfill(stripe_session_id="102", event_type="checkout.session.completed",
+                                  payment_status="paid", group_id=1)
+
+
+    mock_repository.update.assert_not_called()
+    fake_stripe_client.v1.refunds.create.assert_not_called()
+
+
 
 async def test_fulfill_already_completed(payment_service: PaymentService, mock_repository) -> None:
     payment = Payment(

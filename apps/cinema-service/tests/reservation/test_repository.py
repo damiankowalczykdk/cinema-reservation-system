@@ -1,8 +1,9 @@
-from datetime import datetime, date
+from datetime import datetime, date, timedelta, timezone
 from decimal import Decimal
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from core.config import database_settings
 from domain.models.cinema import Cinema
 from domain.models.hall import Hall
 from domain.models.movie import Movie, Genre
@@ -137,6 +138,11 @@ async def test_get_active_reservation_for_screening(db_session: AsyncSession) ->
     )
 
     await reservation_repo.add_all([reservation])
+
+    reservation_time = timedelta(minutes=database_settings.expires_at)
+    cutoff = datetime.now(tz=timezone.utc) - reservation_time
+
+    await reservation_repo.expire_stale_pending(screening.id, cutoff)
 
     result = await reservation_repo.get_active_reservation_for_screening(reservation.id)
 

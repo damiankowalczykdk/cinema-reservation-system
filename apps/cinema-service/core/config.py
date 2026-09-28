@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -8,6 +10,8 @@ class DatabaseSettings(BaseSettings):
     postgres_host: str
     postgres_port: int
     postgres_db: str
+
+    expires_at: float
 
     @property
     def POSTGRES_URI(self) -> str:

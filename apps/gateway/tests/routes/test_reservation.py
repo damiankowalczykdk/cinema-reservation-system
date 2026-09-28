@@ -83,6 +83,21 @@ async def test_get_user_reservations(client: AsyncClient, user_client: AsyncClie
 
 @respx.mock
 async def test_cancel_reservation(client: AsyncClient, user_client: AsyncClient, test_settings: Auth0Settings) -> None:
+    respx.get(f"{test_settings.cinema_service_url}/reservation/1").mock(
+        return_value=Response(200, json=[{
+            "id": 1,
+            "screening_id": 1,
+            "group_id": 1,
+            "user_id": "test123user",
+            "guest_email": None,
+            "guest_name": None,
+            "row": 1,
+            "seat": 1,
+            "status": "pending",
+            "price_paid": 100
+        }])
+    )
+
     respx.post(f"{test_settings.cinema_service_url}/reservation/1/cancel").mock(
         return_value=Response(200, json=[{
             "id": 1,
@@ -116,12 +131,27 @@ async def test_cancel_reservation_anonymous_unauthorized(client: AsyncClient, te
 
 @respx.mock
 async def test_cancel_reservation_if_is_admin(client: AsyncClient, admin_client: AsyncClient, test_settings: Auth0Settings) -> None:
-    respx.post(f"{test_settings.cinema_service_url}/reservation/1/cancel").mock(
+    respx.get(f"{test_settings.cinema_service_url}/reservation/1").mock(
         return_value=Response(200, json=[{
             "id": 1,
             "screening_id": 1,
             "group_id": 1,
             "user_id": "test123user",
+            "guest_email": None,
+            "guest_name": None,
+            "row": 1,
+            "seat": 1,
+            "status": "pending",
+            "price_paid": 100
+        }])
+    )
+
+    respx.post(f"{test_settings.cinema_service_url}/reservation/1/cancel").mock(
+        return_value=Response(200, json=[{
+            "id": 1,
+            "screening_id": 1,
+            "group_id": 1,
+            "user_id": None,
             "guest_email": None,
             "guest_name": None,
             "row": 1,
@@ -137,8 +167,37 @@ async def test_cancel_reservation_if_is_admin(client: AsyncClient, admin_client:
     response = await admin_client.post("/reservations/1/cancel")
 
     assert response.status_code == 200
-    data = response.json()[0]
-    assert data["user_id"] == "test123user"
+
+
+
+@respx.mock
+async def test_cancel_reservation_404(client: AsyncClient, user_client: AsyncClient, test_settings: Auth0Settings) -> None:
+    respx.get(f"{test_settings.cinema_service_url}/reservation/1").mock(
+        return_value=Response(200, json=[{
+            "id": 1,
+            "screening_id": 1,
+            "group_id": 1,
+            "user_id": None,
+            "guest_email": None,
+            "guest_name": None,
+            "row": 1,
+            "seat": 1,
+            "status": "pending",
+            "price_paid": 100
+        }])
+
+    )
+    refund_route = respx.post(f"{test_settings.payment_service_url}/payment/1/refund").mock(
+        return_value=Response(204)
+    )
+
+    response = await user_client.post("/reservations/1/cancel")
+
+    assert response.status_code == 404
+    assert not refund_route.called
+
+
+
 
 @respx.mock
 async def test_get_occupied_seats(client: AsyncClient, test_settings: Auth0Settings) -> None:

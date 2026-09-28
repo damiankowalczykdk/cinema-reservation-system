@@ -4,6 +4,7 @@ from unittest.mock import MagicMock, AsyncMock
 import pytest
 import pytest_asyncio
 import stripe
+from fastapi import HTTPException
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, AsyncEngine, async_sessionmaker
 from testcontainers.community.postgres import PostgresContainer
@@ -89,6 +90,18 @@ async def fake_cinema_client():
     mock.request.return_value = {
         "total_price":"100"
     }
+    return mock
+
+@pytest_asyncio.fixture
+async def fake_cinema_client_conflict():
+    mock = AsyncMock()
+    mock.request.side_effect = HTTPException(status_code=409)
+    return mock
+
+@pytest_asyncio.fixture
+async def fake_cinema_client_unavailable():
+    mock = AsyncMock()
+    mock.request.side_effect = HTTPException(status_code=503)
     return mock
 
 @pytest_asyncio.fixture

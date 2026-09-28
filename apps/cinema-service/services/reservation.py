@@ -1,5 +1,8 @@
+from datetime import timedelta, datetime, timezone
 from decimal import Decimal
 from typing import Sequence
+
+from core.config import database_settings
 from core.exceptions import NotFoundException, ValidationException, ConflictException, UnauthorizedException
 from domain.models.reservation import Reservation, Status
 from domain.schemas.reservation import CreateReservation, OccupiedSeatsRead
@@ -31,7 +34,7 @@ class ReservationService:
         if bool(user_id) == bool(create_reservation.guest_email):
             raise ValidationException("Provide either user_id or guest_email, not both or neither")
 
-        active_reservation = await self.reservation_repository.get_active_reservation_for_screening(screening.id)
+        active_reservation = await self._get_active_reservation_for_screening(screening.id)
 
         occupied = {(r.row, r.seat) for r in active_reservation}
 
@@ -118,7 +121,7 @@ class ReservationService:
         if not hall:
             raise NotFoundException("Hall not found")
 
-        occupied_seats = await self.reservation_repository.get_active_reservation_for_screening(screening_id)
+        occupied_seats = await self._get_active_reservation_for_screening(screening_id)
 
 
         seats = [(r.row, r.seat) for r in occupied_seats]
@@ -143,3 +146,12 @@ class ReservationService:
         if not reservations:
             raise NotFoundException("Reservation not found")
         return reservations
+
+    async def _get_active_reservation_for_screening(self, screening_id: int) -> Sequence[Reservation]:
+        reservation_time = timedelta(minutes=database_settings.expires_at)
+        cutoff = datetime.now(tz=timezone.utc) - reservation_time
+
+        await self.reservation_repository.expire_stale_pending(screening_id, cutoff)
+
+        active_reservations = await self.reservation_repository.get_active_reservation_for_screening(screening_id)
+        return active_reservations

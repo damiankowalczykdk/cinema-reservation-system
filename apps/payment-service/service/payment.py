@@ -4,6 +4,8 @@ import stripe
 from fastapi import Response, Request
 from fastapi.exceptions import HTTPException
 from sqlalchemy.exc import IntegrityError
+from datetime import datetime, timezone
+
 from core.config import settings
 from core.exceptions import ConflictException
 from core.http_client import ServiceRequestClient
@@ -65,7 +67,7 @@ class PaymentService:
 
         if new_active_session:
             try:
-
+                expires_at = int(datetime.now(timezone.utc).timestamp()) + settings.checkout_session_ttl_minutes * 60
                 checkout_session = self.client.v1.checkout.sessions.create(params={
                     'line_items': [
                         {
@@ -80,6 +82,7 @@ class PaymentService:
                     'mode': 'payment',
                     'success_url': f"{settings.frontend_url}/booking/confirmation?session_id={{CHECKOUT_SESSION_ID}}",
                     'metadata': {'group_id': str(create_payment.group_id)},
+                    "expires_at": expires_at,
                     # Provide a name (for example, hosted_web_0001) to label this Checkout integration and measure its conversion independently
                     'integration_identifier': 'cinema-reservation-checkout',
                 })
@@ -112,20 +115,28 @@ class PaymentService:
         if payment is None:
             return None
 
-        if payment.status == Status.COMPLETED:
+        if payment.status in (Status.COMPLETED, Status.REFUNDED):
             return None
 
         if payment_status == "paid":
             payment.status = Status.COMPLETED
 
-            await self.cinema_client.request(
-                "POST",
-            f"/reservation/{group_id}/confirm")
+            try:
+                await self.cinema_client.request(
+                    "POST",
+                f"/reservation/{group_id}/confirm")
 
+
+            except HTTPException as e:
+                if e.status_code == 409:
+                    logger.warning(f"Reservation {group_id} cancelled before payment confirmation, refunding")
+                    await self._refund_payment(payment)
+                    await self.repository.update(payment)
+                    return None
+                raise
 
         if event_type in ("checkout.session.expired", "checkout.session.async_payment_failed"):
             payment.status = Status.FAILED
-
 
         await self.repository.update(payment)
 
@@ -140,20 +151,7 @@ class PaymentService:
         if reservation_active.status != Status.COMPLETED:
             return None
 
-        try:
-            checkout_session = self.client.v1.checkout.sessions.retrieve(reservation_active.stripe_session_id)
-            payment_intent = checkout_session.payment_intent
-
-            if not isinstance(payment_intent, str):
-                raise HTTPException(status_code=502, detail="Payment provider error")
-
-            self.client.v1.refunds.create({"payment_intent": payment_intent})
-            reservation_active.status = Status.REFUNDED
-
-        except stripe.StripeError as e:
-            logger.exception("Stripe refund failed")
-            raise HTTPException(status_code=502, detail="Payment provider error")
-
+        await self._refund_payment(reservation_active)
         await self.repository.update(reservation_active)
         return None
 
@@ -185,3 +183,21 @@ class PaymentService:
 
 
         return Response(status_code=200)
+
+
+    async def _refund_payment(self, payment: Payment) -> None:
+        try:
+            checkout_session = self.client.v1.checkout.sessions.retrieve(payment.stripe_session_id)
+            payment_intent = checkout_session.payment_intent
+
+            if not isinstance(payment_intent, str):
+                raise HTTPException(status_code=502, detail="Payment provider error")
+
+            self.client.v1.refunds.create({"payment_intent": payment_intent})
+            payment.status = Status.REFUNDED
+
+        except stripe.StripeError:
+            logger.exception("Stripe refund failed")
+            raise HTTPException(status_code=502, detail="Payment provider error")
+
+

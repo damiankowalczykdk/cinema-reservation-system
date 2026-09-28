@@ -1,8 +1,9 @@
+from pydantic import TypeAdapter
 from api.dependencies import CinemaServiceClient, admin, CurrentUser, PaymentServiceClient
 from core.security import get_current_user
 from domain.schemas.auth import TokenPayload
 from domain.schemas.reservation import ReservationRead, CreateReservation, OccupiedSeatsRead
-from fastapi import APIRouter, status, Depends
+from fastapi import APIRouter, status, Depends, HTTPException
 
 router = APIRouter(prefix="/reservations", tags=["reservations"])
 
@@ -59,21 +60,30 @@ async def cancel_reservation(
         current_user: CurrentUser
 ) -> list[ReservationRead]:
 
+    reservations = TypeAdapter(list[ReservationRead]).validate_python(await reservation_client.request(
+        "GET",
+        f"/reservation/{group_id}"
+    ))
+    reservation = reservations[0]
+
     headers = {"X-User-Id": current_user.sub}
-    if "admin" in current_user.roles:
+    is_admin = "admin" in current_user.roles
+    if is_admin:
         headers["X-Is-Admin"] = "true"
 
-    resp: list[ReservationRead] = await reservation_client.request(
-        "POST",
-        f"/reservation/{group_id}/cancel",
-        headers=headers
-    )
+    if not is_admin and (reservation.user_id is None or current_user.sub != reservation.user_id):
+        raise HTTPException(status_code=404)
 
     await payment_client.request(
         "POST",
         f"/payment/{group_id}/refund"
     )
-    return resp
+
+    return await reservation_client.request(
+        "POST",
+        f"/reservation/{group_id}/cancel",
+        headers=headers
+    )
 
 @router.get(
     "/screening/{screening_id}/seats",
