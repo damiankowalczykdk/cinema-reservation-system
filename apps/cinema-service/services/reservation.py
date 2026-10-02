@@ -63,7 +63,8 @@ class ReservationService:
                 row=s.row,
                 seat=s.seat,
                 status=Status.PENDING,
-                price_paid=screening.price
+                price_paid=screening.price,
+                expires_at=datetime.now(timezone.utc) + timedelta(minutes=database_settings.hold_minutes)
 
             ))
 
@@ -85,6 +86,29 @@ class ReservationService:
 
         return await self.reservation_repository.get_by_user_id(user_id)
 
+    async def extend(self, group_id: int) -> datetime:
+        reservations = await self._check_group(group_id, lock=True)
+
+        now = datetime.now(timezone.utc)
+        requested_expires_at = now + timedelta(minutes=database_settings.extend_minutes)
+
+        for reservation in reservations:
+            if reservation.status == Status.CANCELLED:
+                raise ConflictException("Cannot extend reservation")
+            if reservation.status == Status.CONFIRMED:
+                raise ConflictException("Reservation already confirmed")
+
+            max_expires_at = reservation.created_at + timedelta(minutes=database_settings.max_hold_minutes)
+            new_expires_at = min(requested_expires_at, max_expires_at)
+
+            if reservation.expires_at < now:
+                raise ConflictException("Reservation expired")
+
+            reservation.expires_at = new_expires_at
+
+        await self.reservation_repository.add_all(list(reservations))
+        return reservations[0].expires_at
+
 
     async def cancel_reservation(
             self,
@@ -93,7 +117,7 @@ class ReservationService:
             is_admin: bool
     ) -> Sequence[Reservation]:
 
-        reservations = await self._check_group(group_id)
+        reservations = await self._check_group(group_id, lock=True)
 
         owner_id = reservations[0].user_id
         is_owner = owner_id is not None and owner_id == user_id
@@ -129,7 +153,7 @@ class ReservationService:
         return OccupiedSeatsRead(seats=seats, row=hall.rows, seat_per_row=hall.seats_per_row)
 
     async def set_confirm_reservation(self, group_id: int) -> None:
-        reservations = await self._check_group(group_id)
+        reservations = await self._check_group(group_id, lock=True)
 
         if any(r.status == Status.CANCELLED for r in reservations):
             raise ConflictException("Reservation already cancelled")
@@ -141,17 +165,19 @@ class ReservationService:
         await self.reservation_repository.add_all(list(reservations))
 
 
-    async def _check_group(self, group_id: int) -> Sequence[Reservation]:
-        reservations = await self.reservation_repository.get_by_group_id(group_id)
+    async def _check_group(self, group_id: int, lock: bool = False) -> Sequence[Reservation]:
+        if not lock:
+            reservations = await self.reservation_repository.get_by_group_id(group_id)
+        else:
+            reservations = await self.reservation_repository.get_by_group_id_for_update(group_id)
+
         if not reservations:
             raise NotFoundException("Reservation not found")
+
         return reservations
 
     async def _get_active_reservation_for_screening(self, screening_id: int) -> Sequence[Reservation]:
-        reservation_time = timedelta(minutes=database_settings.expires_at)
-        cutoff = datetime.now(tz=timezone.utc) - reservation_time
-
-        await self.reservation_repository.expire_stale_pending(screening_id, cutoff)
+        await self.reservation_repository.expire_stale_pending(screening_id)
 
         active_reservations = await self.reservation_repository.get_active_reservation_for_screening(screening_id)
         return active_reservations

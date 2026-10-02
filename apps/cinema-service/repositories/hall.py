@@ -13,5 +13,8 @@ class HallRepository(GenericRepository[Hall]):
         result = await self.session.execute(stmt)
         return result.scalar_one_or_none()
 
+    async def get_by_id_for_update(self, hall_id: int) -> Hall | None:
+        return await self.session.get(Hall, hall_id, with_for_update=True)
+
 
 

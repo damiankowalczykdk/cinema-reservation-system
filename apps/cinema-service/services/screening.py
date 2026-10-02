@@ -120,7 +120,7 @@ class ScreeningService:
         return movie
 
     async def _check_hall_by_id(self, hall_id: int) -> Hall:
-        hall = await self.hall_repository.get_by_id(hall_id)
+        hall = await self.hall_repository.get_by_id_for_update(hall_id)
         if not hall:
             raise NotFoundException("Hall not found")
         return hall

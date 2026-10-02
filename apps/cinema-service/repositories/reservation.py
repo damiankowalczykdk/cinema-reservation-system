@@ -24,6 +24,11 @@ class ReservationRepository(GenericRepository[Reservation]):
         result = await self.session.execute(stmt)
         return result.scalars().all()
 
+    async def get_by_group_id_for_update(self, group_id: int) -> Sequence[Reservation]:
+        stmt = select(Reservation).where(Reservation.group_id == group_id).order_by(Reservation.id).with_for_update()
+        result = await self.session.execute(stmt)
+        return result.scalars().all()
+
     async def get_group_total(self, group_id: int) -> Decimal | None:
         stmt = (
             select(func.sum(Reservation.price_paid))
@@ -47,13 +52,13 @@ class ReservationRepository(GenericRepository[Reservation]):
         result = await self.session.execute(stmt)
         return result.scalars().all()
 
-    async def  expire_stale_pending(self, screening_id: int, cutoff: datetime) -> None:
+    async def  expire_stale_pending(self, screening_id: int) -> None:
         await self.session.execute(
             update(Reservation)
             .where(
                 Reservation.screening_id == screening_id,
                 Reservation.status == Status.PENDING,
-                Reservation.created_at < cutoff
+                Reservation.expires_at < datetime.now(timezone.utc)
             )
             .values(status=Status.CANCELLED, updated_at=datetime.now(tz=timezone.utc))
         )

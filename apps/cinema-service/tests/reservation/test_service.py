@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 from decimal import Decimal
 from unittest.mock import AsyncMock
 
@@ -323,7 +323,7 @@ async def test_cancel_reservation_success(
         price_paid=Decimal("19.99")
     )
 
-    mock_repo_reservation.get_by_group_id = AsyncMock(return_value=[reservation])
+    mock_repo_reservation.get_by_group_id_for_update = AsyncMock(return_value=[reservation])
 
     await reservation_service.cancel_reservation(1, "test123", False)
 
@@ -466,10 +466,87 @@ async def test_set_confirm_reservation_already_canceled(
         price_paid=Decimal("19.99")
     )
 
-    mock_repo_reservation.get_by_group_id = AsyncMock(return_value=[reservation])
+    mock_repo_reservation.get_by_group_id_for_update = AsyncMock(return_value=[reservation])
 
     with pytest.raises(ConflictException, match="Reservation already cancelled"):
         await reservation_service.set_confirm_reservation(reservation.id)
 
 
+async def test_extend_success(reservation_service: ReservationService, mock_repo_reservation: AsyncMock) -> None:
+    reservation = Reservation(
+        id=1,
+        screening_id=1,
+        group_id=1,
+        user_id="test123",
+        row=1,
+        seat=1,
+        status=Status.PENDING,
+        price_paid=Decimal("19.99"),
+        expires_at=datetime.now(timezone.utc) + timedelta(minutes=15),
+        created_at=datetime.now(timezone.utc)
+    )
 
+    mock_repo_reservation.get_by_group_id_for_update = AsyncMock(return_value=[reservation])
+
+    await reservation_service.extend(2)
+
+    mock_repo_reservation.add_all.assert_called_once()
+
+async def test_extend_reservation_already_confirmed(reservation_service: ReservationService, mock_repo_reservation: AsyncMock) -> None:
+    reservation = ReservationRead(
+        id=5,
+        screening_id=1,
+        group_id=2,
+        user_id="test123",
+        row=1,
+        seat=1,
+        status=Status.CONFIRMED,
+        price_paid=Decimal("19.99")
+    )
+
+    mock_repo_reservation.get_by_group_id_for_update = AsyncMock(return_value=[reservation])
+
+    with pytest.raises(ConflictException, match="Reservation already confirmed"):
+        await reservation_service.extend(2)
+
+    mock_repo_reservation.add_all.assert_not_called()
+
+async def test_extend_reservation_already_cancelled(reservation_service: ReservationService, mock_repo_reservation: AsyncMock) -> None:
+    reservation = ReservationRead(
+        id=5,
+        screening_id=1,
+        group_id=2,
+        user_id="test123",
+        row=1,
+        seat=1,
+        status=Status.CANCELLED,
+        price_paid=Decimal("19.99")
+    )
+
+    mock_repo_reservation.get_by_group_id_for_update = AsyncMock(return_value=[reservation])
+
+    with pytest.raises(ConflictException, match="Cannot extend reservation"):
+        await reservation_service.extend(2)
+
+    mock_repo_reservation.add_all.assert_not_called()
+
+async def test_extend_reservation_expired(reservation_service: ReservationService, mock_repo_reservation: AsyncMock) -> None:
+    reservation = Reservation(
+        id=1,
+        screening_id=1,
+        group_id=1,
+        user_id="test123",
+        row=1,
+        seat=1,
+        status=Status.PENDING,
+        price_paid=Decimal("19.99"),
+        expires_at=datetime.now(timezone.utc),
+        created_at=datetime.now(timezone.utc) + timedelta(minutes=15)
+    )
+
+    mock_repo_reservation.get_by_group_id_for_update = AsyncMock(return_value=[reservation])
+
+    with pytest.raises(ConflictException, match="Reservation expired"):
+        await reservation_service.extend(2)
+
+    mock_repo_reservation.add_all.assert_not_called()

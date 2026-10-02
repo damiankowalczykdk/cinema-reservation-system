@@ -4,7 +4,6 @@ from typing import AsyncGenerator
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, AsyncEngine, async_sessionmaker
 from testcontainers.community.postgres import PostgresContainer
-
 from core.database import Base, get_db
 from main import app
 

@@ -1,5 +1,6 @@
 from typing import AsyncGenerator
 from unittest.mock import MagicMock, AsyncMock
+from datetime import datetime, timezone, timedelta
 
 import pytest
 import pytest_asyncio
@@ -40,12 +41,14 @@ def fake_stripe_client():
     mock = MagicMock()
     mock.v1.checkout.sessions.create.return_value = MagicMock(
         id="cs_123",
-        url="https://checkout.stripe.com/test"
+        url="https://checkout.stripe.com/test",
+        expires_at=datetime.now(timezone.utc)
     )
     mock.v1.checkout.sessions.retrieve.return_value = MagicMock(
         status="open",
         url="https://checkout.stripe.com/test",
-        payment_intent="pi_123"
+        payment_intent="pi_123",
+        expires_at=datetime.now(timezone.utc)
     )
     return mock
 
@@ -80,7 +83,8 @@ def fake_stripe_client_expired():
     mock.v1.checkout.sessions.retrieve.return_value = MagicMock(
         status="expired",
         url="https://checkout.stripe.com/test",
-        payment_intent="pi_123"
+        payment_intent="pi_123",
+
     )
     return mock
 
@@ -88,7 +92,17 @@ def fake_stripe_client_expired():
 async def fake_cinema_client():
     mock = AsyncMock()
     mock.request.return_value = {
-        "total_price":"100"
+        "total_price":"100",
+        "expires_at": (datetime.now(timezone.utc) + timedelta(minutes=60)).isoformat()
+    }
+    return mock
+
+@pytest_asyncio.fixture
+async def fake_cinema_client_expire_time():
+    mock = AsyncMock()
+    mock.request.return_value = {
+        "total_price":"100",
+        "expires_at": (datetime.now(timezone.utc) - timedelta(minutes=60)).isoformat()
     }
     return mock
 

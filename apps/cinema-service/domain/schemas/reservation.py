@@ -1,3 +1,4 @@
+from datetime import datetime
 from decimal import Decimal
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -28,6 +29,9 @@ class OccupiedSeatsRead(BaseModel):
 
 class GroupTotalRead(BaseModel):
     total_price: Decimal
+
+class ExtendRead(BaseModel):
+    expires_at: datetime
 
 class ReservationRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
