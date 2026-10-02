@@ -1,3 +1,6 @@
+import json
+from datetime import datetime, timezone, timedelta
+
 from httpx import AsyncClient
 
 async def test_create_reservation(client: AsyncClient) -> None:
@@ -33,7 +36,7 @@ async def test_create_reservation(client: AsyncClient) -> None:
     payload_screening = {
         "movie_id": movie_id,
         "hall_id": hall_id,
-        "start_time": "2026-08-25T18:30:00Z",
+        "start_time": (datetime.now(timezone.utc) + timedelta(days=1)).isoformat(),
         "price": 19.99
     }
 
@@ -90,7 +93,7 @@ async def test_get_reservation_by_group_id(client: AsyncClient) -> None:
     payload_screening = {
         "movie_id": movie_id,
         "hall_id": hall_id,
-        "start_time": "2026-08-25T18:30:00Z",
+        "start_time": (datetime.now(timezone.utc) + timedelta(days=1)).isoformat(),
         "price": 19.99
     }
 
@@ -148,7 +151,7 @@ async def test_get_group_total(client: AsyncClient) -> None:
     payload_screening = {
         "movie_id": movie_id,
         "hall_id": hall_id,
-        "start_time": "2026-08-25T18:30:00Z",
+        "start_time": (datetime.now(timezone.utc) + timedelta(days=1)).isoformat(),
         "price": 19.99
     }
 
@@ -206,7 +209,7 @@ async def test_get_user_reservations_and_cancel_reservation(client: AsyncClient)
     payload_screening = {
         "movie_id": movie_id,
         "hall_id": hall_id,
-        "start_time": "2026-08-25T18:30:00Z",
+        "start_time": (datetime.now(timezone.utc) + timedelta(days=1)).isoformat(),
         "price": 19.99
     }
 
@@ -269,7 +272,7 @@ async def test_get_occupied_seats(client: AsyncClient) -> None:
     payload_screening = {
         "movie_id": movie_id,
         "hall_id": hall_id,
-        "start_time": "2026-08-25T18:30:00Z",
+        "start_time": (datetime.now(timezone.utc) + timedelta(days=1)).isoformat(),
         "price": 19.99
     }
 
@@ -328,7 +331,7 @@ async def test_delete_reservation_by_id(client: AsyncClient) -> None:
     payload_screening = {
         "movie_id": movie_id,
         "hall_id": hall_id,
-        "start_time": "2026-08-25T18:30:00Z",
+        "start_time": (datetime.now(timezone.utc) + timedelta(days=1)).isoformat(),
         "price": 19.99
     }
 
@@ -383,7 +386,7 @@ async def test_set_confirm_reservation(client: AsyncClient) -> None:
         payload_screening = {
             "movie_id": movie_id,
             "hall_id": hall_id,
-            "start_time": "2026-08-25T18:30:00Z",
+            "start_time": (datetime.now(timezone.utc) + timedelta(days=1)).isoformat(),
             "price": 19.99
         }
 
@@ -443,7 +446,7 @@ async def test_extend(client: AsyncClient) -> None:
     payload_screening = {
         "movie_id": movie_id,
         "hall_id": hall_id,
-        "start_time": "2026-08-25T18:30:00Z",
+        "start_time": (datetime.now(timezone.utc) + timedelta(days=1)).isoformat(),
         "price": 19.99
     }
 
@@ -474,7 +477,11 @@ async def test_extend(client: AsyncClient) -> None:
     assert "expires_at" in data_extend
 
 
+async def test_expire_stale(client: AsyncClient) -> None:
 
+    res = await client.post("/reservation/expire-stale")
+
+    assert res.status_code == 204
 
 
 

@@ -109,6 +109,9 @@ class ReservationService:
         await self.reservation_repository.add_all(list(reservations))
         return reservations[0].expires_at
 
+    async def expire_stale(self) -> None:
+        await self.reservation_repository.expire_all_stale()
+
 
     async def cancel_reservation(
             self,

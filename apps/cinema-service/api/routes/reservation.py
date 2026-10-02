@@ -19,6 +19,10 @@ async def get_reservations_by_group_id(group_id: int, service: ReservationServic
 async def extend(group_id: int, service: ReservationServiceDep) -> ExtendRead:
     return ExtendRead(expires_at=await service.extend(group_id))
 
+@router.post("/expire-stale", status_code=status.HTTP_204_NO_CONTENT, summary="Expire stale reservations")
+async def expire_stale(service: ReservationServiceDep) -> None:
+    await service.expire_stale()
+
 
 @router.get("/{group_id}/total",response_model=GroupTotalRead, status_code=status.HTTP_200_OK, summary="Get reservations total")
 async def get_group_total(group_id: int, service: ReservationServiceDep) -> GroupTotalRead:

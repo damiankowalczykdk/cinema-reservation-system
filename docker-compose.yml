@@ -96,6 +96,22 @@ services:
     networks:
       - backend
 
+  reservation_expirer:
+    image: curlimages/curl:latest
+    restart: always
+    depends_on:
+      - cinema-service
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        while true; do
+          curl -fsS -X POST http://cinema-service:8001/reservation/expire-stale || echo "expire-stale failed"
+          sleep 60
+        done
+    networks:
+      - backend
+
+
 volumes:
   postgres_data:
   gateway:
