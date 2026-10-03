@@ -34,7 +34,11 @@ class ScreeningRepository(GenericRepository[Screening]):
 
 
     async def get_search_screenings(
-            self, movie_id: int | None, cinema_id: int | None, date_from: datetime | None, date_to: datetime | None
+            self,
+            movie_id: int | None,
+            cinema_id: int | None,
+            date_from: datetime | None,
+            date_to: datetime | None,
     ) -> Sequence[RowMapping]:
 
         # conditions = [Screening.start_time > datetime.now(timezone.utc)]
@@ -52,6 +56,8 @@ class ScreeningRepository(GenericRepository[Screening]):
         if date_to is not None:
             conditions.append(Screening.start_time <= date_to)
 
+
+
         stmt = (
             select(
                 Screening.id.label("screening_id"),
@@ -61,7 +67,8 @@ class ScreeningRepository(GenericRepository[Screening]):
                 Cinema.name.label("cinema_name"),
                 Hall.id.label("hall_id"),
                 Screening.start_time.label("start_time"),
-                Screening.price.label("price")
+                Screening.price.label("price"),
+                Movie.poster_path.label("poster_path")
             )
             .join(Hall, Hall.id == Screening.hall_id)
             .where(

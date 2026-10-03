@@ -13,8 +13,12 @@ def mock_repo() -> AsyncMock:
     return AsyncMock()
 
 @pytest.fixture
-def movie_service(mock_repo: AsyncMock) -> MovieService:
-    return MovieService(mock_repo)
+def mock_tmdb_client() -> AsyncMock:
+    return AsyncMock()
+
+@pytest.fixture
+def movie_service(mock_repo: AsyncMock, mock_tmdb_client: AsyncMock) -> MovieService:
+    return MovieService(mock_repo, mock_tmdb_client)
 
 async def test_create_movie_success(movie_service: MovieService, mock_repo: AsyncMock) -> None:
     mock_repo.get_movie_by_title_and_release_date = AsyncMock(return_value=None)
@@ -63,7 +67,8 @@ async def test_get_movie_by_id_success(movie_service: MovieService, mock_repo: A
         description="Test Movie Description",
         duration_minutes=60,
         genre=Genre.CRIME,
-        release_date=date(2026,8,23)
+        release_date=date(2026,8,23),
+        poster_path="test.jpg"
     )
     mock_repo.get_by_id = AsyncMock(return_value=movie)
 
@@ -85,7 +90,9 @@ async def test_get_movie_by_title_success(movie_service: MovieService, mock_repo
         description="Test Movie Description",
         duration_minutes=60,
         genre=Genre.CRIME,
-        release_date=date(2026,8,23)
+        release_date=date(2026,8,23),
+        poster_path="test.jpg"
+
     )
     mock_repo.get_movie_by_title = AsyncMock(return_value=[movie])
 
