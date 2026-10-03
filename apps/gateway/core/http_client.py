@@ -1,5 +1,5 @@
 from json import JSONDecodeError
-from typing import Mapping, Sequence, Any
+from typing import Mapping, Sequence, Any, cast
 from fastapi import HTTPException
 from httpx import QueryParams
 from starlette import status
@@ -42,6 +42,8 @@ class ServiceRequestClient:
                 status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
                 detail=f"Request failed: {str(e)}",
             )
+        if response.status_code == 204:
+            return cast(T, None)
 
         if response.status_code >= 400:
             error_detail: str | JsonType

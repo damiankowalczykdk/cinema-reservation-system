@@ -1,17 +1,20 @@
 from decimal import Decimal
 from enum import Enum
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
+
 
 class Status(Enum):
     PENDING = "pending"
     CONFIRMED = "confirmed"
     CANCELLED = "cancelled"
 
+class SeatInput(BaseModel):
+    row: int
+    seat: int
 
 class CreateReservation(BaseModel):
     screening_id: int
-    row: int
-    seat: int
+    seats: list[SeatInput] = Field(min_length=1)
     guest_email: str | None = None
     guest_name: str | None = None
 
@@ -33,6 +36,7 @@ class ReservationRead(BaseModel):
 
     id: int
     screening_id: int
+    group_id: int
     user_id: str | None
     guest_email: str | None
     guest_name: str | None

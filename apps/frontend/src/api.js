@@ -96,15 +96,23 @@ const createScreening = (payload) => request('POST', '/screenings/', { body: pay
 const getScreeningById = (id) => request('GET', `/screenings/${id}`)
 const updateScreening = (id, patch) => request('PATCH', `/screenings/${id}`, { body: patch })
 const deleteScreening = (id) => request('DELETE', `/screenings/${id}`)
+// public browse endpoint: denormalized rows (movie_title, cinema_name already joined in),
+// so pages don't need to separately fetch /movies or /cinemas to display a listing
+const searchScreenings = ({ movieId, cinemaId, dateFrom, dateTo } = {}) =>
+  request('GET', '/screenings/search', {
+    params: { movie_id: movieId, cinema_id: cinemaId, date_from: dateFrom, date_to: dateTo },
+  })
 
 // --- reservations ---
 // Identity is inferred by the gateway from your session cookie, not sent explicitly:
 // logged in -> reservation gets your user_id; not logged in -> pass guest_email instead.
+// One booking = one group_id shared by N seat rows; every endpoint below returns a list of seat rows.
 
-const createReservation = (payload) => request('POST', '/reservations/', { body: payload })
-const getReservationById = (id) => request('GET', `/reservations/${id}`) // admin only
+const createReservation = (payload) => request('POST', '/reservations/', { body: payload }) // { screening_id, seats: [{row, seat}], ... }
+const getReservationGroup = (groupId) => request('GET', `/reservations/${groupId}`) // admin only
 const getUserReservations = () => request('GET', '/reservations/') // requires login
-const cancelReservation = (id) => request('POST', `/reservations/${id}/cancel`) // requires login
+const cancelReservation = (groupId) => request('POST', `/reservations/${groupId}/cancel`) // requires login
+const deleteReservationGroup = (groupId) => request('DELETE', `/reservations/${groupId}`) // admin only
 const getOccupiedSeats = (screeningId) => request('GET', `/reservations/screening/${screeningId}/seats`) // { seats: [[row, seat], ...] }
 
 // --- payment ---
@@ -137,10 +145,12 @@ export {
   getScreeningById,
   updateScreening,
   deleteScreening,
+  searchScreenings,
   createReservation,
-  getReservationById,
+  getReservationGroup,
   getUserReservations,
   cancelReservation,
+  deleteReservationGroup,
   getOccupiedSeats,
   createPayment,
 }

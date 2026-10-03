@@ -16,7 +16,7 @@ class Payment(Base):
 
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    reservation_id: Mapped[int] = mapped_column(Integer, nullable=False)
+    group_id: Mapped[int] = mapped_column(Integer, nullable=False)
     user_id: Mapped[str | None] = mapped_column(String(255))
     amount: Mapped[int] = mapped_column(Integer, nullable=False)
     currency: Mapped[str] = mapped_column(String(32), nullable=False)
@@ -32,8 +32,8 @@ class Payment(Base):
     )
 
     __table_args__ = Index(
-        "uq_payment_reservation_active",
-        "reservation_id",
+        "uq_payment_group_active",
+        "group_id",
         unique=True,
         postgresql_where=(status != "FAILED"),
     ),

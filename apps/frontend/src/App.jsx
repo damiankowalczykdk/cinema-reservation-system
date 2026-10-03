@@ -1,67 +1,37 @@
-import { useState } from 'react'
-import Overview from './Overview.jsx'
+import { Routes, Route, Navigate } from 'react-router-dom'
+import AppShell from './AppShell.jsx'
+import AdminRoute from './admin/AdminRoute.jsx'
+import AdminLayout from './admin/AdminLayout.jsx'
+import AdminReservations from './admin/AdminReservations.jsx'
 import EntityCrud from './EntityCrud.jsx'
-import Reservation from './Reservation.jsx'
-import Payment from './Payment.jsx'
-import { Section } from './ui.jsx'
+import SeatSelection from './pages/SeatSelection.jsx'
+import BookingConfirmation from './pages/BookingConfirmation.jsx'
+import MyReservations from './pages/MyReservations.jsx'
+import MoviesBrowse from './pages/MoviesBrowse.jsx'
+import MovieDetail from './pages/MovieDetail.jsx'
 import entities from './entities.js'
 import './App.css'
 
-const NAV = [
-  { key: 'overview', label: 'Overview' },
-  { key: 'cinema', label: 'Cinemas' },
-  { key: 'hall', label: 'Halls' },
-  { key: 'movie', label: 'Movies' },
-  { key: 'screening', label: 'Screenings' },
-  { key: 'reservation', label: 'Reservations' },
-  { key: 'payment', label: 'Payment' },
-]
-
 function App() {
-  const [page, setPage] = useState('overview')
-  const [sessionId] = useState(() => new URLSearchParams(window.location.search).get('session_id'))
-
-  if (sessionId) {
-    return (
-      <div className="shell">
-        <main className="content">
-          <Section title="Payment received">
-            <p>Thanks! We're confirming your payment with Stripe — this can take a few seconds.</p>
-            <p>Session: {sessionId}</p>
-          </Section>
-        </main>
-      </div>
-    )
-  }
-
   return (
-    <div className="shell">
-      <aside className="sidebar">
-        <div className="brand">Gateway Console</div>
-        <nav>
-          {NAV.map((item) => (
-            <button
-              key={item.key}
-              className={`nav-item${page === item.key ? ' nav-item--active' : ''}`}
-              onClick={() => setPage(item.key)}
-            >
-              {item.label}
-            </button>
-          ))}
-        </nav>
-      </aside>
-      <main className="content">
-        {page === 'overview' ? (
-          <Overview />
-        ) : page === 'reservation' ? (
-          <Reservation />
-        ) : page === 'payment' ? (
-          <Payment />
-        ) : (
-          <EntityCrud {...entities[page]} />
-        )}
-      </main>
-    </div>
+    <Routes>
+      <Route element={<AppShell />}>
+        <Route path="/" element={<MoviesBrowse />} />
+        <Route path="/movies/:movieId" element={<MovieDetail />} />
+        <Route path="/screenings/:screeningId" element={<SeatSelection />} />
+        <Route path="/booking/confirmation" element={<BookingConfirmation />} />
+        <Route path="/my-reservations" element={<MyReservations />} />
+
+        <Route path="/admin" element={<AdminRoute><AdminLayout /></AdminRoute>}>
+          <Route index element={<Navigate to="cinemas" replace />} />
+          <Route path="cinemas" element={<EntityCrud {...entities.cinema} />} />
+          <Route path="halls" element={<EntityCrud {...entities.hall} />} />
+          <Route path="movies" element={<EntityCrud {...entities.movie} />} />
+          <Route path="screenings" element={<EntityCrud {...entities.screening} />} />
+          <Route path="reservations" element={<AdminReservations />} />
+        </Route>
+      </Route>
+    </Routes>
   )
 }
 

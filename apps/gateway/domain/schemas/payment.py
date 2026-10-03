@@ -2,7 +2,7 @@ from pydantic import BaseModel
 
 
 class CreatePayment(BaseModel):
-    reservation_id: int
+    group_id: int
     guest_email: str | None = None
 
 class CheckoutSessionRead(BaseModel):

@@ -1,7 +1,7 @@
 from datetime import datetime, timezone
 from decimal import Decimal
 from enum import Enum
-from sqlalchemy import Enum as SaEnum, Index
+from sqlalchemy import Enum as SaEnum, Index, Sequence
 from sqlalchemy import Integer, String, DateTime, ForeignKey, DECIMAL
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -13,12 +13,15 @@ class Status(Enum):
     CONFIRMED = "confirmed"
     CANCELLED = "cancelled"
 
+reservation_group_id_seq = Sequence("reservation_group_id_seq", metadata=Base.metadata)
+
 class Reservation(Base):
     __tablename__ = "reservations"
 
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     screening_id: Mapped[int] = mapped_column(Integer, ForeignKey('screenings.id'), nullable=False)
+    group_id: Mapped[int] = mapped_column(Integer, nullable=False, index=True)
     user_id: Mapped[str| None] = mapped_column(String(255))
     guest_email: Mapped[str | None] = mapped_column(String(255))
     guest_name: Mapped[str| None] = mapped_column(String(32))

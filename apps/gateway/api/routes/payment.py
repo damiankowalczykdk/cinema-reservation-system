@@ -4,6 +4,7 @@ from core.security import get_current_user
 from domain.schemas.auth import TokenPayload
 from domain.schemas.payment import CheckoutSessionRead, CreatePayment
 from domain.schemas.reservation import ReservationRead, Status
+from pydantic import TypeAdapter
 
 router = APIRouter(prefix="/payments", tags=["payments"])
 
@@ -15,10 +16,11 @@ async def create_payment(
         current_user: TokenPayload | None = Depends(get_current_user)
 ) -> CheckoutSessionRead:
 
-    reservation = ReservationRead.model_validate(await reservation_client.request(
+    reservations = TypeAdapter(list[ReservationRead]).validate_python(await reservation_client.request(
         "GET",
-        f"/reservation/{payload.reservation_id}"
+        f"/reservation/{payload.group_id}"
     ))
+    reservation = reservations[0]
 
     if reservation.user_id is not None:
         if current_user is None or reservation.user_id != current_user.sub:
@@ -40,7 +42,7 @@ async def create_payment(
         "POST",
         f"/payment",
         json={
-             "reservation_id": reservation.id,
+             "group_id": reservation.group_id,
              "guest_email": payload.guest_email
         },
         headers={"X-User-Id": current_user.sub} if current_user else None
