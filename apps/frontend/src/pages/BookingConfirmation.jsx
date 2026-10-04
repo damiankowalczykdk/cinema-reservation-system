@@ -1,26 +1,33 @@
-import { useSearchParams, Link } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import { useAuth } from '../auth/AuthContext.jsx'
+import { useI18n } from '../i18n/LanguageContext.jsx'
+import Steps from '../components/Steps.jsx'
 
 function BookingConfirmation() {
-  const [searchParams] = useSearchParams()
-  const sessionId = searchParams.get('session_id')
   const { user } = useAuth()
+  const { t } = useI18n()
 
   return (
-    <div>
-      <h2>Thanks for your booking!</h2>
-      <p className="note">
-        We're confirming your payment with Stripe — this can take a few seconds.
-        {sessionId && <> Session: {sessionId}</>}
-      </p>
-      {user ? (
-        <Link to="/my-reservations">
-          <button type="button">Check My Reservations</button>
-        </Link>
-      ) : (
-        <p className="note">Keep an eye on your email for confirmation.</p>
-      )}
-    </div>
+    <>
+      <Steps current={2} />
+      <div className="confirmation">
+        <div className="confirmation__icon" aria-hidden="true">
+          <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M20 6L9 17l-5-5" />
+          </svg>
+        </div>
+        <h2>{t('confirm.title')}</h2>
+        <p>
+          {t('confirm.body')} {user ? t('confirm.bodyUser') : t('confirm.bodyGuest')}
+        </p>
+        <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
+          {user && (
+            <Link className="btn btn--lg" to="/my-reservations">{t('confirm.viewTickets')}</Link>
+          )}
+          <Link className={`btn btn--lg${user ? ' btn-secondary' : ''}`} to="/">{t('confirm.browseMore')}</Link>
+        </div>
+      </div>
+    </>
   )
 }
 
