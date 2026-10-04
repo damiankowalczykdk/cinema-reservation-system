@@ -24,7 +24,8 @@ async def test_create_movie(client: AsyncClient, admin_client: AsyncClient, test
             "description": "Movie Description",
             "duration_minutes": 60,
             "genre": "crime",
-            "release_date": "2026-09-05"
+            "release_date": "2026-09-05",
+            "poster_path": "poster"
         })
     )
 

@@ -27,6 +27,9 @@ class ReservationService:
         if not screening:
             raise NotFoundException("Screening not found")
 
+        if screening.start_time < datetime.now(timezone.utc):
+            raise ConflictException("Cannot create reservation screening already started")
+
         hall = await self.hall_repository.get_by_id(screening.hall_id)
         if not hall:
             raise NotFoundException("Hall not found")
@@ -121,6 +124,15 @@ class ReservationService:
     ) -> Sequence[Reservation]:
 
         reservations = await self._check_group(group_id, lock=True)
+
+        screening_id = reservations[0].screening_id
+
+        screening = await self.screening_repository.get_by_id(screening_id)
+        if screening is None:
+            raise NotFoundException("Screening not found")
+
+        if screening.start_time < datetime.now(timezone.utc) and not is_admin:
+            raise ConflictException("Cannot cancel reservation screening already started")
 
         owner_id = reservations[0].user_id
         is_owner = owner_id is not None and owner_id == user_id

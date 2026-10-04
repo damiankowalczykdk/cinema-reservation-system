@@ -1,9 +1,12 @@
+from datetime import timezone, datetime
 from pydantic import TypeAdapter
 from api.dependencies import CinemaServiceClient, admin, CurrentUser, PaymentServiceClient
 from core.security import get_current_user
 from domain.schemas.auth import TokenPayload
 from domain.schemas.reservation import ReservationRead, CreateReservation, OccupiedSeatsRead
 from fastapi import APIRouter, status, Depends, HTTPException
+
+from domain.schemas.screening import ScreeningRead
 
 router = APIRouter(prefix="/reservations", tags=["reservations"])
 
@@ -73,6 +76,16 @@ async def cancel_reservation(
 
     if not is_admin and (reservation.user_id is None or current_user.sub != reservation.user_id):
         raise HTTPException(status_code=404)
+
+    screening_id = reservation.screening_id
+
+    screening = ScreeningRead.model_validate(await reservation_client.request(
+        "GET",
+        f"/screening/{screening_id}"
+    ))
+
+    if not is_admin and screening.start_time < datetime.now(timezone.utc):
+        raise HTTPException(status_code=409, detail="Cannot cancel reservation screening already started")
 
     await payment_client.request(
         "POST",
