@@ -76,11 +76,10 @@ class PaymentService:
                 stripe_session = datetime.now(timezone.utc) + timedelta(minutes=settings.stripe_min_session_minutes)
 
 
-                if hold_expires_at < stripe_session:
+                if hold_expires_at < stripe_session + timedelta(minutes=settings.buffer):
                     raise ConflictException("Reservation hold too short to start payment")
 
                 stripe_expires_at = int(stripe_session.timestamp())
-
 
                 checkout_session = self.client.v1.checkout.sessions.create(params={
                     'line_items': [

@@ -1,4 +1,6 @@
 from datetime import timezone, datetime
+
+from httpx import Request
 from pydantic import TypeAdapter
 from api.dependencies import CinemaServiceClient, admin, CurrentUser, PaymentServiceClient
 from core.security import get_current_user
@@ -87,16 +89,18 @@ async def cancel_reservation(
     if not is_admin and screening.start_time < datetime.now(timezone.utc):
         raise HTTPException(status_code=409, detail="Cannot cancel reservation screening already started")
 
+    cancelled_reservation: list[ReservationRead] = await reservation_client.request(
+        "POST",
+        f"/reservation/{group_id}/cancel",
+        headers=headers
+    )
+
     await payment_client.request(
         "POST",
         f"/payment/{group_id}/refund"
     )
 
-    return await reservation_client.request(
-        "POST",
-        f"/reservation/{group_id}/cancel",
-        headers=headers
-    )
+    return cancelled_reservation
 
 @router.get(
     "/screening/{screening_id}/seats",

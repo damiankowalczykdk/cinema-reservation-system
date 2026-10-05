@@ -15,7 +15,10 @@ class TMDBClient:
         try:
             params: ParamsType = {"query": title, "year": year}
             headers = {"Authorization": f"Bearer {self.tmdb_api_token}"}
-            response = await self.client.request("GET", f"{self.tmdb_base_address}/search/movie", params=params, headers=headers)
+            response = await self.client.request(
+                "GET",
+                f"{self.tmdb_base_address}/search/movie", params=params, headers=headers
+            )
 
         except httpx.RequestError:
             return None
