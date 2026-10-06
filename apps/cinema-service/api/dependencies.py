@@ -1,6 +1,9 @@
-from typing import Annotated
+from typing import Annotated, AsyncIterator
 from fastapi import Depends, Header
+from httpx import Request, AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
+from clients.tmdb import TMDBClient
+from core.config import database_settings
 from core.database import get_db
 from repositories.cinema import CinemaRepository
 from repositories.hall import HallRepository
@@ -41,13 +44,22 @@ HallServiceDep = Annotated[HallService, Depends(get_hall_service)]
 
 # MOVIE
 
+async def get_tmdb_client() -> AsyncIterator[TMDBClient]:
+    async with AsyncClient(timeout=5.0) as client:
+        yield TMDBClient(
+            client=client,
+            tmdb_api_token=database_settings.tmdb_api_token,
+            tmdb_base_address=database_settings.tmdb_base_address
+        )
+TMDBClientDep = Annotated[TMDBClient, Depends(get_tmdb_client)]
+
 def get_movie_repository(session: AsyncSession = Depends(get_db)) -> MovieRepository:
     return MovieRepository(session)
 
 MovieRepoDep = Annotated[MovieRepository, Depends(get_movie_repository)]
 
-def get_movie_service(movie_repository: MovieRepoDep) -> MovieService:
-    return MovieService(movie_repository)
+def get_movie_service(movie_repository: MovieRepoDep, tmdb_client: TMDBClientDep) -> MovieService:
+    return MovieService(movie_repository, tmdb_client)
 
 MovieServiceDep = Annotated[MovieService, Depends(get_movie_service)]
 

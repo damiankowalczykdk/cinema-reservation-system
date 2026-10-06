@@ -24,13 +24,17 @@ class PaymentRepository:
 
 
     async def get_by_stripe_session_id(self, stripe_session_id: str) -> Payment | None:
-        result = await self.session.execute(select(Payment).where(Payment.stripe_session_id == stripe_session_id))
+        result = await self.session.execute(select(Payment).where(Payment.stripe_session_id == stripe_session_id).with_for_update())
         return result.scalar_one_or_none()
 
 
     async def get_by_active_group_id(self, group_id: int) -> Payment | None:
-        result = await self.session.execute(select(Payment)
-                                            .where(Payment.group_id == group_id, Payment.status != Status.FAILED))
+        result = await self.session.execute(
+            select(Payment)
+            .where(Payment.group_id == group_id, Payment.status != Status.FAILED)
+            .with_for_update()
+        )
+
         return result.scalar_one_or_none()
 
     async def get_all(self) -> Sequence[Payment]:

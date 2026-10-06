@@ -1,5 +1,3 @@
-from datetime import datetime
-
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -11,7 +9,15 @@ class DatabaseSettings(BaseSettings):
     postgres_port: int
     postgres_db: str
 
-    expires_at: float
+    hold_minutes: float
+    max_hold_minutes: float
+    extend_minutes: float
+
+    tmdb_api_token: str
+    tmdb_base_address: str = "https://api.themoviedb.org/3"
+
+    http_timeout: float = 5.0
+
 
     @property
     def POSTGRES_URI(self) -> str:

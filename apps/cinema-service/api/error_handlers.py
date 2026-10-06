@@ -2,6 +2,8 @@ import logging
 from fastapi import FastAPI, Request, status
 from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
+from sqlalchemy.exc import IntegrityError
+
 from core.exceptions import APIException
 
 logger = logging.getLogger(__name__)
@@ -15,6 +17,18 @@ def register_error_handlers(app: FastAPI) -> None:
             content={
                 "error": exc.error_code,
                 "message": exc.message
+            }
+        )
+
+    @app.exception_handler(IntegrityError)
+    async def integrity_error_handler(_: Request, exc: IntegrityError) -> JSONResponse:
+        logger.error("Resource conflicts with existing data", exc_info=exc)
+
+        return JSONResponse(
+            status_code=status.HTTP_409_CONFLICT,
+            content={
+                "error": "CONFLICT",
+                "message": "Resource conflicts with existing data"
             }
         )
 

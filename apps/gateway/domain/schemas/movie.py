@@ -43,3 +43,4 @@ class MovieRead(BaseModel):
     duration_minutes: int
     genre: Genre
     release_date: date
+    poster_path: str | None = None

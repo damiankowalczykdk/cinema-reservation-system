@@ -19,7 +19,8 @@ class Settings(BaseSettings):
 
     default_currency: str = "usd"
 
-    checkout_session_ttl_minutes: int
+    stripe_min_session_minutes: int = 31
+    buffer: int = 10
 
     @property
     def POSTGRES_URI(self) -> str:

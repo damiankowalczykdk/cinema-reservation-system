@@ -29,6 +29,7 @@ class Reservation(Base):
     seat: Mapped[int] = mapped_column(Integer, nullable=False)
     status: Mapped[Status] = mapped_column(SaEnum(Status), nullable=False)
     price_paid: Mapped[Decimal] = mapped_column(DECIMAL(6, 2), nullable=False)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
 
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(tz=timezone.utc))
 

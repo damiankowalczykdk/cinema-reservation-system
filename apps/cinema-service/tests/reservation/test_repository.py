@@ -70,7 +70,8 @@ async def test_get_user_by_id(db_session: AsyncSession) -> None:
         row=1,
         seat=1,
         status=Status.PENDING,
-        price_paid=Decimal("19.99")
+        price_paid=Decimal("19.99"),
+        expires_at=datetime(2026, 8, 26, 18, 0, 0)
     )
 
     await reservation_repo.add_all([reservation])
@@ -134,15 +135,14 @@ async def test_get_active_reservation_for_screening(db_session: AsyncSession) ->
         row=1,
         seat=1,
         status=Status.PENDING,
-        price_paid=Decimal("19.99")
+        price_paid=Decimal("19.99"),
+        expires_at=datetime.now(timezone.utc) + timedelta(minutes=15),
+        created_at=datetime.now(timezone.utc)
     )
 
     await reservation_repo.add_all([reservation])
 
-    reservation_time = timedelta(minutes=database_settings.expires_at)
-    cutoff = datetime.now(tz=timezone.utc) - reservation_time
-
-    await reservation_repo.expire_stale_pending(screening.id, cutoff)
+    await reservation_repo.expire_stale_pending(screening.id)
 
     result = await reservation_repo.get_active_reservation_for_screening(reservation.id)
 

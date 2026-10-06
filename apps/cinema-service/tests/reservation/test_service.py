@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 from decimal import Decimal
 from unittest.mock import AsyncMock
 
@@ -44,7 +44,7 @@ async def test_create_reservation_success(
         id=1,
         movie_id=1,
         hall_id=1,
-        start_time=datetime(2026, 8, 26, 18,0,0),
+        start_time=datetime.now(timezone.utc) + timedelta(hours=1),
         price=Decimal("19.99")
     )
 
@@ -68,6 +68,43 @@ async def test_create_reservation_success(
 
     mock_repo_reservation.add_all.assert_called_once()
 
+async def test_create_reservation_screening_already_started(
+        reservation_service: ReservationService,
+        mock_repo_screening: AsyncMock,
+        mock_repo_reservation: AsyncMock,
+        mock_repo_hall:AsyncMock
+) -> None:
+
+    screening = Screening(
+        id=1,
+        movie_id=1,
+        hall_id=1,
+        start_time=datetime.now(timezone.utc) - timedelta(hours=1),
+        price=Decimal("19.99")
+    )
+
+    hall = Hall(
+        id=1,
+        cinema_id=1,
+        name="Test Hall",
+        rows=10,
+        seats_per_row=10
+    )
+
+    mock_repo_screening.get_by_id = AsyncMock(return_value=screening)
+    mock_repo_hall.get_by_id = AsyncMock(return_value=hall)
+
+    create_reservation = CreateReservation(
+        screening_id=1,
+        seats=[SeatInput(row=1, seat=2)]
+    )
+
+    with pytest.raises(ConflictException, match="Cannot create reservation screening already started"):
+        await reservation_service.create_reservation(create_reservation, user_id="test123")
+
+    mock_repo_reservation.add_all.assert_not_called()
+
+
 async def test_create_reservation_not_found_screening(
         reservation_service: ReservationService,
         mock_repo_screening: AsyncMock,
@@ -84,8 +121,18 @@ async def test_create_reservation_not_found_screening(
 
 async def test_create_reservation_not_found_hall(
         reservation_service: ReservationService,
-        mock_repo_hall:AsyncMock
+        mock_repo_hall:AsyncMock,
+        mock_repo_screening: AsyncMock
 ) -> None:
+    screening = Screening(
+        id=1,
+        movie_id=1,
+        hall_id=1,
+        start_time=datetime.now(timezone.utc) + timedelta(hours=1),
+        price=Decimal("19.99")
+    )
+
+    mock_repo_screening.get_by_id = AsyncMock(return_value=screening)
     mock_repo_hall.get_by_id = AsyncMock(return_value=None)
 
     create_reservation = CreateReservation(
@@ -105,7 +152,7 @@ async def test_create_reservation_duplicate_seat(
         id=1,
         movie_id=1,
         hall_id=1,
-        start_time=datetime(2026, 8, 26, 18, 0, 0),
+        start_time=datetime.now(timezone.utc) + timedelta(hours=1),
         price=Decimal("19.99")
     )
 
@@ -139,7 +186,7 @@ async def test_create_reservation_if_provide_user_id_and_guest_email(
         id=1,
         movie_id=1,
         hall_id=1,
-        start_time=datetime(2026, 8, 26, 18,0,0),
+        start_time=datetime.now(timezone.utc) + timedelta(hours=1),
         price=Decimal("19.99")
     )
 
@@ -175,7 +222,7 @@ async def test_create_reservation_if_not_valid_seat(
         id=1,
         movie_id=1,
         hall_id=1,
-        start_time=datetime(2026, 8, 26, 18,0,0),
+        start_time=datetime.now(timezone.utc) + timedelta(hours=1),
         price=Decimal("19.99")
     )
 
@@ -212,7 +259,7 @@ async def test_create_reservation_if_seat_already_reserved(
         id=1,
         movie_id=1,
         hall_id=1,
-        start_time=datetime(2026, 8, 26, 18,0,0),
+        start_time=datetime.now(timezone.utc) + timedelta(hours=1),
         price=Decimal("19.99")
     )
 
@@ -311,6 +358,103 @@ async def test_get_group_total_not_found(
 async def test_cancel_reservation_success(
         reservation_service: ReservationService,
         mock_repo_reservation: AsyncMock,
+        mock_repo_screening: AsyncMock
+) -> None:
+    reservation = ReservationRead(
+        id=1,
+        screening_id=1,
+        group_id=1,
+        user_id="test123",
+        row=1,
+        seat=1,
+        status=Status.PENDING,
+        price_paid=Decimal("19.99")
+    )
+    screening = Screening(
+        id=1,
+        movie_id=1,
+        hall_id=1,
+        start_time=datetime.now(timezone.utc) + timedelta(hours=1),
+        price=Decimal("19.99")
+    )
+
+    mock_repo_screening.get_by_id = AsyncMock(return_value=screening)
+
+    mock_repo_reservation.get_by_group_id_for_update = AsyncMock(return_value=[reservation])
+
+    await reservation_service.cancel_reservation(1, "test123", False)
+
+    result = mock_repo_reservation.add_all.call_args[0][0]
+
+    assert result[0].status == Status.CANCELLED
+
+async def test_cancel_reservation_screening_already_started_if_is_admin(
+        reservation_service: ReservationService,
+        mock_repo_reservation: AsyncMock,
+        mock_repo_screening: AsyncMock
+) -> None:
+    reservation = ReservationRead(
+        id=1,
+        screening_id=1,
+        group_id=1,
+        user_id="test123",
+        row=1,
+        seat=1,
+        status=Status.PENDING,
+        price_paid=Decimal("19.99")
+    )
+    screening = Screening(
+        id=1,
+        movie_id=1,
+        hall_id=1,
+        start_time=datetime.now(timezone.utc) - timedelta(hours=1),
+        price=Decimal("19.99")
+    )
+
+    mock_repo_screening.get_by_id = AsyncMock(return_value=screening)
+
+    mock_repo_reservation.get_by_group_id_for_update = AsyncMock(return_value=[reservation])
+
+    await reservation_service.cancel_reservation(1, "test123", True)
+
+    result = mock_repo_reservation.add_all.call_args[0][0]
+
+    assert result[0].status == Status.CANCELLED
+
+async def test_cancel_reservation_screening_already_started_and_not_is_admin(
+        reservation_service: ReservationService,
+        mock_repo_reservation: AsyncMock,
+        mock_repo_screening: AsyncMock
+) -> None:
+    reservation = ReservationRead(
+        id=1,
+        screening_id=1,
+        group_id=1,
+        user_id="test123",
+        row=1,
+        seat=1,
+        status=Status.PENDING,
+        price_paid=Decimal("19.99")
+    )
+    screening = Screening(
+        id=1,
+        movie_id=1,
+        hall_id=1,
+        start_time=datetime.now(timezone.utc) - timedelta(hours=1),
+        price=Decimal("19.99")
+    )
+
+    mock_repo_screening.get_by_id = AsyncMock(return_value=screening)
+
+    mock_repo_reservation.get_by_group_id_for_update = AsyncMock(return_value=[reservation])
+
+    with pytest.raises(ConflictException, match="Cannot cancel reservation screening already started"):
+        await reservation_service.cancel_reservation(1, "test123", False)
+
+async def test_cancel_reservation_screening_not_found(
+        reservation_service: ReservationService,
+        mock_repo_reservation: AsyncMock,
+        mock_repo_screening: AsyncMock
 ) -> None:
     reservation = ReservationRead(
         id=1,
@@ -323,19 +467,29 @@ async def test_cancel_reservation_success(
         price_paid=Decimal("19.99")
     )
 
-    mock_repo_reservation.get_by_group_id = AsyncMock(return_value=[reservation])
+    mock_repo_screening.get_by_id = AsyncMock(return_value=None)
 
-    await reservation_service.cancel_reservation(1, "test123", False)
+    mock_repo_reservation.get_by_group_id_for_update = AsyncMock(return_value=[reservation])
 
-    result = mock_repo_reservation.add_all.call_args[0][0]
+    with pytest.raises(NotFoundException, match="Screening not found"):
+        await reservation_service.cancel_reservation(1, "test123", False)
 
-    assert result[0].status == Status.CANCELLED
 
 
 async def test_cancel_reservation_not_allowed(
         reservation_service: ReservationService,
         mock_repo_reservation: AsyncMock,
+        mock_repo_screening: AsyncMock
 ) -> None:
+    screening = Screening(
+        id=1,
+        movie_id=1,
+        hall_id=1,
+        start_time=datetime.now(timezone.utc) + timedelta(hours=1),
+        price=Decimal("19.99")
+    )
+    mock_repo_screening.get_by_id = AsyncMock(return_value=screening)
+
     reservation = ReservationRead(
         id=1,
         screening_id=1,
@@ -394,7 +548,7 @@ async def test_occupied_seats_success(
         id=1,
         movie_id=1,
         hall_id=1,
-        start_time=datetime(2026, 8, 26, 18, 0, 0),
+        start_time=datetime.now(timezone.utc) + timedelta(hours=1),
         price=Decimal("19.99")
     )
 
@@ -466,10 +620,87 @@ async def test_set_confirm_reservation_already_canceled(
         price_paid=Decimal("19.99")
     )
 
-    mock_repo_reservation.get_by_group_id = AsyncMock(return_value=[reservation])
+    mock_repo_reservation.get_by_group_id_for_update = AsyncMock(return_value=[reservation])
 
     with pytest.raises(ConflictException, match="Reservation already cancelled"):
         await reservation_service.set_confirm_reservation(reservation.id)
 
 
+async def test_extend_success(reservation_service: ReservationService, mock_repo_reservation: AsyncMock) -> None:
+    reservation = Reservation(
+        id=1,
+        screening_id=1,
+        group_id=1,
+        user_id="test123",
+        row=1,
+        seat=1,
+        status=Status.PENDING,
+        price_paid=Decimal("19.99"),
+        expires_at=datetime.now(timezone.utc) + timedelta(minutes=15),
+        created_at=datetime.now(timezone.utc)
+    )
 
+    mock_repo_reservation.get_by_group_id_for_update = AsyncMock(return_value=[reservation])
+
+    await reservation_service.extend(2)
+
+    mock_repo_reservation.add_all.assert_called_once()
+
+async def test_extend_reservation_already_confirmed(reservation_service: ReservationService, mock_repo_reservation: AsyncMock) -> None:
+    reservation = ReservationRead(
+        id=5,
+        screening_id=1,
+        group_id=2,
+        user_id="test123",
+        row=1,
+        seat=1,
+        status=Status.CONFIRMED,
+        price_paid=Decimal("19.99")
+    )
+
+    mock_repo_reservation.get_by_group_id_for_update = AsyncMock(return_value=[reservation])
+
+    with pytest.raises(ConflictException, match="Reservation already confirmed"):
+        await reservation_service.extend(2)
+
+    mock_repo_reservation.add_all.assert_not_called()
+
+async def test_extend_reservation_already_cancelled(reservation_service: ReservationService, mock_repo_reservation: AsyncMock) -> None:
+    reservation = ReservationRead(
+        id=5,
+        screening_id=1,
+        group_id=2,
+        user_id="test123",
+        row=1,
+        seat=1,
+        status=Status.CANCELLED,
+        price_paid=Decimal("19.99")
+    )
+
+    mock_repo_reservation.get_by_group_id_for_update = AsyncMock(return_value=[reservation])
+
+    with pytest.raises(ConflictException, match="Cannot extend reservation"):
+        await reservation_service.extend(2)
+
+    mock_repo_reservation.add_all.assert_not_called()
+
+async def test_extend_reservation_expired(reservation_service: ReservationService, mock_repo_reservation: AsyncMock) -> None:
+    reservation = Reservation(
+        id=1,
+        screening_id=1,
+        group_id=1,
+        user_id="test123",
+        row=1,
+        seat=1,
+        status=Status.PENDING,
+        price_paid=Decimal("19.99"),
+        expires_at=datetime.now(timezone.utc),
+        created_at=datetime.now(timezone.utc) + timedelta(minutes=15)
+    )
+
+    mock_repo_reservation.get_by_group_id_for_update = AsyncMock(return_value=[reservation])
+
+    with pytest.raises(ConflictException, match="Reservation expired"):
+        await reservation_service.extend(2)
+
+    mock_repo_reservation.add_all.assert_not_called()

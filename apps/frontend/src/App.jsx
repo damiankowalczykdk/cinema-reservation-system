@@ -9,6 +9,7 @@ import BookingConfirmation from './pages/BookingConfirmation.jsx'
 import MyReservations from './pages/MyReservations.jsx'
 import MoviesBrowse from './pages/MoviesBrowse.jsx'
 import MovieDetail from './pages/MovieDetail.jsx'
+import Schedule from './pages/Schedule.jsx'
 import entities from './entities.js'
 import './App.css'
 
@@ -17,6 +18,7 @@ function App() {
     <Routes>
       <Route element={<AppShell />}>
         <Route path="/" element={<MoviesBrowse />} />
+        <Route path="/schedule" element={<Schedule />} />
         <Route path="/movies/:movieId" element={<MovieDetail />} />
         <Route path="/screenings/:screeningId" element={<SeatSelection />} />
         <Route path="/booking/confirmation" element={<BookingConfirmation />} />

@@ -2,7 +2,7 @@ from typing import Sequence
 from fastapi import APIRouter, status
 from api.dependencies import ReservationServiceDep, CurrentUserId, IsAdmin
 from domain.models.reservation import Reservation
-from domain.schemas.reservation import ReservationRead, CreateReservation, OccupiedSeatsRead, GroupTotalRead
+from domain.schemas.reservation import ReservationRead, CreateReservation, OccupiedSeatsRead, GroupTotalRead, ExtendRead
 
 router = APIRouter(prefix="/reservation", tags=["reservation"])
 
@@ -14,6 +14,15 @@ async def create_reservation(payload: CreateReservation, service: ReservationSer
 @router.get("/{group_id}", response_model=list[ReservationRead], status_code=status.HTTP_200_OK, summary="Get reservations")
 async def get_reservations_by_group_id(group_id: int, service: ReservationServiceDep) -> Sequence[Reservation]:
     return await service.get_reservations_by_group_id(group_id)
+
+@router.post("/{group_id}/extend",response_model=ExtendRead, status_code=status.HTTP_200_OK, summary="Extend reservations")
+async def extend(group_id: int, service: ReservationServiceDep) -> ExtendRead:
+    return ExtendRead(expires_at=await service.extend(group_id))
+
+@router.post("/expire-stale", status_code=status.HTTP_204_NO_CONTENT, summary="Expire stale reservations")
+async def expire_stale(service: ReservationServiceDep) -> None:
+    await service.expire_stale()
+
 
 @router.get("/{group_id}/total",response_model=GroupTotalRead, status_code=status.HTTP_200_OK, summary="Get reservations total")
 async def get_group_total(group_id: int, service: ReservationServiceDep) -> GroupTotalRead:

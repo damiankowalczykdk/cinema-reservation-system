@@ -140,7 +140,7 @@ async def test_get_by_id_not_found_hall(
         mock_repo_hall: AsyncMock
         ) -> None:
 
-    mock_repo_hall.get_by_id = AsyncMock(return_value=None)
+    mock_repo_hall.get_by_id_for_update = AsyncMock(return_value=None)
 
     with pytest.raises(NotFoundException, match="Hall not found"):
         await service_screening._check_hall_by_id(1)

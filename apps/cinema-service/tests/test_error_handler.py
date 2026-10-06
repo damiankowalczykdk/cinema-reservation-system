@@ -1,5 +1,7 @@
 from unittest.mock import patch
 from httpx import AsyncClient, ASGITransport
+from sqlalchemy.exc import IntegrityError
+
 from core.exceptions import ValidationException
 from main import app
 
@@ -23,6 +25,19 @@ async def test_create_cinema_422(client: AsyncClient) -> None:
     data = response.json()
     assert data["error"] == "VALIDATION_ERROR"
 
+async def test_existing_data(client: AsyncClient) -> None:
+
+    response = await client.post("/reservation/", json={
+        "name": 1,
+        "city": "Test City",
+        "address": "Test Address"
+    })
+    assert response.status_code == 422
+
+    data = response.json()
+    assert data["error"] == "VALIDATION_ERROR"
+
+
 
 async def test_unhandled_exception_handler(client: AsyncClient) -> None:
     transport = ASGITransport(app=app, raise_app_exceptions=False)
@@ -33,3 +48,16 @@ async def test_unhandled_exception_handler(client: AsyncClient) -> None:
 
             assert response.status_code == 500
             assert response.json()["error"] == "INTERNAL_SERVER_ERROR"
+
+
+async def test_integrity_exception_handler(client: AsyncClient) -> None:
+    transport = ASGITransport(app=app, raise_app_exceptions=False)
+
+    with patch(
+            "services.reservation.ReservationService.get_reservations_by_group_id",
+            side_effect=IntegrityError("INSERT ...", {}, Exception("duplicated"))):
+        async with AsyncClient(transport=transport, base_url="http://test") as raw_client:
+            response = await raw_client.get("/reservation/1")
+
+            assert response.status_code == 409
+            assert response.json()["error"] == "CONFLICT"

@@ -1,5 +1,5 @@
 from typing import Sequence
-
+from clients.tmdb import TMDBClient
 from core.exceptions import ConflictException, NotFoundException
 from domain.models.movie import Movie
 from domain.schemas.movie import CreateMovie, UpdateMovie
@@ -7,12 +7,15 @@ from repositories.movie import MovieRepository
 
 
 class MovieService:
-    def __init__(self, repository: MovieRepository) -> None:
+    def __init__(self, repository: MovieRepository, tmdb_client: TMDBClient) -> None:
         self.repository = repository
+        self.tmdb_client = tmdb_client
 
     async def create_movie(self, create_movie: CreateMovie) -> Movie:
         if await self.repository.get_movie_by_title_and_release_date(create_movie.title, create_movie.release_date):
             raise ConflictException("Movie already exists")
+
+        poster_path = await self.tmdb_client.get_poster_path(create_movie.title, create_movie.release_date.year)
 
         movie = Movie(
             title=create_movie.title,
@@ -20,6 +23,7 @@ class MovieService:
             duration_minutes=create_movie.duration_minutes,
             genre=create_movie.genre,
             release_date=create_movie.release_date,
+            poster_path=poster_path
         )
 
         return await self.repository.add(movie)
@@ -45,6 +49,9 @@ class MovieService:
         title = update_movie.title if update_movie.title is not None else movie.title
         release_date = update_movie.release_date if update_movie.release_date is not None else movie.release_date
 
+        poster_path = await self.tmdb_client.get_poster_path(title, release_date.year)
+        poster = poster_path if poster_path is not None else movie.poster_path
+
         existing_movie = await self.repository.get_movie_by_title_and_release_date(title, release_date)
         if existing_movie and existing_movie.id != movie.id:
             raise ConflictException("Movie already exists")
@@ -54,7 +61,8 @@ class MovieService:
             "description": update_movie.description,
             "duration_minutes": update_movie.duration_minutes,
             "genre": update_movie.genre,
-            "release_date": update_movie.release_date
+            "release_date": update_movie.release_date,
+            "poster_path": poster
         })
 
         return await self.repository.add(movie)

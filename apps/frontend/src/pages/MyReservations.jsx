@@ -1,7 +1,12 @@
 import { useCallback, useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import * as Dialog from '@radix-ui/react-dialog'
 import { useAuth } from '../auth/AuthContext.jsx'
-import { getUserReservations, cancelReservation } from '../api.js'
+import { getUserReservations, cancelReservation, getScreeningById, getMovieById } from '../api.js'
+import Poster from '../components/Poster.jsx'
+import { EmptyState, ErrorState, Skeleton, StatusBadge } from '../components/Feedback.jsx'
+import { useI18n } from '../i18n/LanguageContext.jsx'
+import { formatDateTime, formatPrice } from '../format.js'
 
 const CANCELLABLE_STATUSES = new Set(['pending', 'confirmed'])
 
@@ -17,26 +22,44 @@ function groupByBooking(rows) {
       groupId,
       screeningId: seats[0].screening_id,
       status: seats[0].status,
-      seats,
+      seats: [...seats].sort((a, b) => a.row - b.row || a.seat - b.seat),
       total: seats.reduce((sum, s) => sum + Number(s.price_paid), 0),
     }))
     .sort((a, b) => b.groupId - a.groupId) // newest first
 }
 
-function seatList(seats) {
-  return seats.map((s) => `R${s.row}-S${s.seat}`).join(', ')
+// screening_id -> { start_time, title } — reservations only carry the screening id,
+// so look each distinct screening (and its movie) up once for display
+async function loadScreeningInfo(screeningIds) {
+  const info = {}
+  await Promise.allSettled(
+    screeningIds.map(async (id) => {
+      const screening = await getScreeningById(id)
+      const movie = await getMovieById(screening.movie_id).catch(() => null)
+      info[id] = {
+        start_time: screening.start_time,
+        title: movie?.title ?? null,
+        poster_path: movie?.poster_path ?? null,
+      }
+    })
+  )
+  return info
 }
 
 function MyReservations() {
   const { user, loading: authLoading, login } = useAuth()
   const [reservations, setReservations] = useState(null)
+  const [screeningInfo, setScreeningInfo] = useState({})
   const [error, setError] = useState(null)
   const [confirmId, setConfirmId] = useState(null)
   const [cancellingId, setCancellingId] = useState(null)
+  const { t } = useI18n()
 
   const load = useCallback(async () => {
     try {
-      setReservations(await getUserReservations())
+      const rows = await getUserReservations()
+      setReservations(rows)
+      setScreeningInfo(await loadScreeningInfo([...new Set(rows.map((r) => r.screening_id))]))
     } catch (err) {
       setError(err.message)
     }
@@ -46,15 +69,14 @@ function MyReservations() {
     if (user) load()
   }, [user, load])
 
-  if (authLoading) return <p>Loading…</p>
+  if (authLoading) return <Skeleton className="skeleton--block" />
 
   if (!user) {
     return (
-      <div>
-        <h2>My Reservations</h2>
-        <p className="note">You need to be logged in to see your reservations.</p>
-        <button onClick={login}>Log in</button>
-      </div>
+      <EmptyState icon="🎟️" title={t('tickets.signInTitle')}>
+        <p>{t('tickets.signInBody')}</p>
+        <button onClick={login}>{t('auth.signIn')}</button>
+      </EmptyState>
     )
   }
 
@@ -75,60 +97,88 @@ function MyReservations() {
   const bookings = reservations ? groupByBooking(reservations) : null
 
   return (
-    <div>
-      <h2>My Reservations</h2>
-      {error && <p className="error">{error}</p>}
+    <>
+      <div className="page-header">
+        <h1>{t('tickets.title')}</h1>
+        <p>{t('tickets.subtitle')}</p>
+      </div>
+
+      {error && <ErrorState message={error} />}
 
       {bookings === null ? (
-        <p>Loading…</p>
+        !error && (
+          <div className="tickets">
+            <Skeleton className="skeleton--block" style={{ height: 120 }} />
+            <Skeleton className="skeleton--block" style={{ height: 120 }} />
+          </div>
+        )
       ) : bookings.length === 0 ? (
-        <p className="note">No reservations yet.</p>
+        <EmptyState icon="🎟️" title={t('tickets.emptyTitle')}>
+          <p>{t('tickets.emptyBody')}</p>
+          <Link className="btn" to="/">{t('tickets.findMovie')}</Link>
+        </EmptyState>
       ) : (
-        <div className="grid">
-          {bookings.map((b) => (
-            <div className="panel" key={b.groupId}>
-              <p>
-                Booking #{b.groupId} · Screening #{b.screeningId}
-              </p>
-              <p>
-                {b.seats.length} seat{b.seats.length === 1 ? '' : 's'}: {seatList(b.seats)}
-              </p>
-              <p className="note">
-                Status: {b.status} · Total: {b.total.toFixed(2)}
-              </p>
-              {CANCELLABLE_STATUSES.has(b.status) && (
-                <Dialog.Root open={confirmId === b.groupId} onOpenChange={(open) => setConfirmId(open ? b.groupId : null)}>
-                  <Dialog.Trigger asChild>
-                    <button className="btn-danger">Cancel booking</button>
-                  </Dialog.Trigger>
-                  <Dialog.Portal>
-                    <Dialog.Overlay className="dialog-overlay" />
-                    <Dialog.Content className="dialog-content">
-                      <Dialog.Title>Cancel this booking?</Dialog.Title>
-                      <Dialog.Description>
-                        All seats ({seatList(b.seats)}) will be released — this can't be undone.
-                      </Dialog.Description>
-                      <div className="dialog-actions">
-                        <Dialog.Close asChild>
-                          <button type="button">Keep it</button>
-                        </Dialog.Close>
-                        <button
-                          className="btn-danger"
-                          onClick={() => handleCancel(b.groupId)}
-                          disabled={cancellingId === b.groupId}
-                        >
-                          {cancellingId === b.groupId ? 'Cancelling…' : 'Yes, cancel'}
-                        </button>
-                      </div>
-                    </Dialog.Content>
-                  </Dialog.Portal>
-                </Dialog.Root>
-              )}
-            </div>
-          ))}
+        <div className="tickets">
+          {bookings.map((b) => {
+            const info = screeningInfo[b.screeningId]
+            const title = info?.title ?? t('common.screening', { id: b.screeningId })
+            const seatList = b.seats.map((s) => t('seats.chip', { row: s.row, seat: s.seat })).join(', ')
+            return (
+              <article className={`ticket${b.status === 'cancelled' ? ' ticket--cancelled' : ''}`} key={b.groupId}>
+                <Poster title={title} posterPath={info?.poster_path} size="sm" />
+
+                <div className="ticket__body">
+                  <h3>{title}</h3>
+                  <div className="meta">
+                    {info && <span>{formatDateTime(info.start_time)}</span>}
+                    <StatusBadge status={b.status} />
+                  </div>
+                  <div className="ticket__seats">
+                    {b.seats.map((s) => (
+                      <span className="chip" key={s.id}>{t('seats.chipLong', { row: s.row, seat: s.seat })}</span>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="ticket__side">
+                  <span className="ticket__total">{formatPrice(b.total)}</span>
+                  <span className="ticket__ref">{t('common.booking', { id: b.groupId })}</span>
+                  {CANCELLABLE_STATUSES.has(b.status) && (
+                    <Dialog.Root open={confirmId === b.groupId} onOpenChange={(open) => setConfirmId(open ? b.groupId : null)}>
+                      <Dialog.Trigger asChild>
+                        <button className="btn-danger-ghost">{t('tickets.cancel')}</button>
+                      </Dialog.Trigger>
+                      <Dialog.Portal>
+                        <Dialog.Overlay className="dialog-overlay" />
+                        <Dialog.Content className="dialog-content">
+                          <Dialog.Title>{t('tickets.cancelTitle')}</Dialog.Title>
+                          <Dialog.Description>
+                            {t('tickets.cancelBody', { title, seats: seatList })}
+                            {b.status === 'confirmed' && ` ${t('tickets.cancelRefund')}`} {t('tickets.cancelUndo')}
+                          </Dialog.Description>
+                          <div className="dialog-actions">
+                            <Dialog.Close asChild>
+                              <button type="button" className="btn-secondary">{t('tickets.keep')}</button>
+                            </Dialog.Close>
+                            <button
+                              className="btn-danger"
+                              onClick={() => handleCancel(b.groupId)}
+                              disabled={cancellingId === b.groupId}
+                            >
+                              {cancellingId === b.groupId ? t('tickets.cancelling') : t('tickets.confirmCancel')}
+                            </button>
+                          </div>
+                        </Dialog.Content>
+                      </Dialog.Portal>
+                    </Dialog.Root>
+                  )}
+                </div>
+              </article>
+            )
+          })}
         </div>
       )}
-    </div>
+    </>
   )
 }
 

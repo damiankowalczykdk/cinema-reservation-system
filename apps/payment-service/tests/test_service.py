@@ -63,6 +63,25 @@ def payment_service_cinema_unavailable(fake_cinema_client_unavailable, fake_stri
         cinema_client=fake_cinema_client_unavailable
     )
 
+@pytest.fixture
+def payment_service_cinema_expired_time(fake_cinema_client_expire_time, fake_stripe_client, mock_repository):
+    return PaymentService(
+        repository=mock_repository,
+        client=fake_stripe_client,
+        cinema_client=fake_cinema_client_expire_time
+    )
+
+async def test_create_check_session_if_hold_expires_at_less_stripe_session(payment_service_cinema_expired_time: PaymentService, mock_repository) -> None:
+    mock_repository.get_by_active_group_id = AsyncMock(return_value=None)
+
+    create_payment = CreatePayment(
+        group_id=1
+    )
+
+    with pytest.raises(ConflictException, match="Reservation hold too short to start payment"):
+        await payment_service_cinema_expired_time.create_checkout_session(create_payment, "test123user")
+
+
 async def test_create_checkout_session_if_pending_return_existing_url(payment_service: PaymentService, mock_repository) -> None:
 
     payment = Payment(
@@ -157,6 +176,7 @@ async def test_create_checkout_session_if_status_failed(payment_service: Payment
     await payment_service.create_checkout_session(create_payment, "test123user")
 
     mock_repository.get_by_active_group_id.assert_called_once()
+
 
 async def test_create_checkout_session_if_session_expired(payment_service_stripe_expired: PaymentService, mock_repository) -> None:
 
@@ -362,6 +382,109 @@ async def test_refund_already_completed(payment_service: PaymentService, mock_re
     mock_repository.get_by_active_group_id = AsyncMock(return_value=payment)
 
     await payment_service.refund(1)
+
+async def test_refund_if_status_pending(payment_service_stripe_expired: PaymentService, mock_repository) -> None:
+    payment = Payment(
+        group_id=1,
+        user_id="test123user",
+        amount=100,
+        currency="USD",
+        status=Status.PENDING,
+        stripe_session_id="102"
+    )
+
+    mock_repository.get_by_active_group_id = AsyncMock(return_value=payment)
+
+    await payment_service_stripe_expired.refund(1)
+
+    mock_repository.update.assert_called_once()
+
+async def test_refund_expire_fails_session_open_raises_502(payment_service: PaymentService, mock_repository, fake_stripe_client) -> None:
+    payment = Payment(
+        group_id=1,
+        user_id="test123user",
+        amount=100,
+        currency="USD",
+        status=Status.PENDING,
+        stripe_session_id="102"
+    )
+
+    mock_repository.get_by_active_group_id = AsyncMock(return_value=payment)
+
+
+    fake_stripe_client.v1.checkout.sessions.retrieve.return_value = MagicMock(status="open", payment_intent="p1_123")
+    fake_stripe_client.v1.checkout.sessions.expire.side_effect = stripe.StripeError()
+
+    with pytest.raises(HTTPException):
+        await payment_service.refund(1)
+
+    assert payment.status == Status.PENDING
+
+async def test_refund_expire_fails_session_complete_refunds(payment_service: PaymentService, mock_repository, fake_stripe_client) -> None:
+    payment = Payment(
+        group_id=1,
+        user_id="test123user",
+        amount=100,
+        currency="USD",
+        status=Status.PENDING,
+        stripe_session_id="102"
+    )
+
+    mock_repository.get_by_active_group_id = AsyncMock(return_value=payment)
+
+
+    fake_stripe_client.v1.checkout.sessions.retrieve.return_value = MagicMock(status="complete", payment_intent="p1_123")
+    fake_stripe_client.v1.checkout.sessions.expire.side_effect = stripe.StripeError()
+
+
+    await payment_service.refund(1)
+
+    assert payment.status == Status.REFUNDED
+
+
+async def test_refund_expire_fails_session_expired_sets_failed(payment_service: PaymentService, mock_repository, fake_stripe_client) -> None:
+    payment = Payment(
+        group_id=1,
+        user_id="test123user",
+        amount=100,
+        currency="USD",
+        status=Status.PENDING,
+        stripe_session_id="102"
+    )
+
+    mock_repository.get_by_active_group_id = AsyncMock(return_value=payment)
+
+
+    fake_stripe_client.v1.checkout.sessions.retrieve.return_value = MagicMock(status="expired")
+    fake_stripe_client.v1.checkout.sessions.expire.side_effect = stripe.StripeError()
+
+    await payment_service.refund(1)
+
+    assert payment.status == Status.FAILED
+
+async def test_refund_expire_fails_retrieve_fails_502(payment_service: PaymentService, mock_repository, fake_stripe_client) -> None:
+    payment = Payment(
+        group_id=1,
+        user_id="test123user",
+        amount=100,
+        currency="USD",
+        status=Status.PENDING,
+        stripe_session_id="102"
+    )
+
+    mock_repository.get_by_active_group_id = AsyncMock(return_value=payment)
+
+
+    fake_stripe_client.v1.checkout.sessions.retrieve.side_effect = stripe.StripeError()
+    fake_stripe_client.v1.checkout.sessions.expire.side_effect = stripe.StripeError()
+
+    with pytest.raises(HTTPException):
+        await payment_service.refund(1)
+
+
+
+
+
 
 async def test_refund_payment_intent_not_str(payment_service_provider_error: PaymentService, mock_repository) -> None:
     payment = Payment(

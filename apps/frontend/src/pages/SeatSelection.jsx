@@ -1,7 +1,12 @@
 import { useEffect, useState } from 'react'
-import { useParams } from 'react-router-dom'
+import { Link, useParams } from 'react-router-dom'
 import SeatMap, { seatKey } from '../components/SeatMap.jsx'
+import Poster from '../components/Poster.jsx'
+import Steps from '../components/Steps.jsx'
+import { ErrorState, Skeleton } from '../components/Feedback.jsx'
 import { useAuth } from '../auth/AuthContext.jsx'
+import { useI18n } from '../i18n/LanguageContext.jsx'
+import { formatDateLong, formatTime, formatPrice, formatDuration } from '../format.js'
 import {
   getOccupiedSeats,
   getScreeningById,
@@ -14,9 +19,14 @@ function emptyGuestForm() {
   return { guest_email: '', guest_name: '' }
 }
 
+function bySeat(a, b) {
+  return a.row - b.row || a.seat - b.seat
+}
+
 function SeatSelection() {
   const { screeningId } = useParams()
   const { user } = useAuth()
+  const { t } = useI18n()
 
   const [screening, setScreening] = useState(null)
   const [movie, setMovie] = useState(null)
@@ -105,7 +115,7 @@ function SeatSelection() {
         guest_name: guestForm.guest_name || undefined,
       })
     } catch (err) {
-      setCreateError(`${err.message} — nothing was booked. Pick different seats and try again.`)
+      setCreateError(t('seats.createFailed', { message: err.message }))
       setCreating(false)
       // someone may have just taken a seat: reload so the map shows it as occupied
       refreshOccupied().catch(() => {})
@@ -124,66 +134,142 @@ function SeatSelection() {
     await payFor(created[0].group_id)
   }
 
-  const bookingTotal = booking ? booking.reduce((sum, r) => sum + Number(r.price_paid), 0) : 0
+  if (loadError) return <ErrorState message={loadError} />
 
-  if (loadError) return <p className="error">{loadError}</p>
-  if (!screening || occupied === null) return <p>Loading…</p>
+  if (!screening || occupied === null) {
+    return (
+      <div className="booking-layout">
+        <Skeleton className="skeleton--block" />
+        <Skeleton className="skeleton--block" />
+      </div>
+    )
+  }
+
+  const title = movie ? movie.title : t('common.screening', { id: screeningId })
+  const seatPrice = Number(screening.price)
+  // once the booking exists the selection is cleared, so the summary switches to the booked seats
+  const summarySeats = booking
+    ? booking.map((r) => ({ row: r.row, seat: r.seat }))
+    : [...selectedSeats].sort(bySeat)
+  const total = booking
+    ? booking.reduce((sum, r) => sum + Number(r.price_paid), 0)
+    : selectedSeats.length * seatPrice
 
   return (
-    <div>
-      <h2>{movie ? movie.title : `Screening #${screeningId}`}</h2>
-      <p className="note">
-        {new Date(screening.start_time).toLocaleString()} — {Number(screening.price).toFixed(2)} per seat
-      </p>
+    <>
+      <Link to={movie ? `/movies/${movie.id}` : '/'} className="back-link">{t('seats.back')}</Link>
+      <Steps current={booking ? 1 : 0} />
 
-      <SeatMap rows={rows} seatsPerRow={seatsPerRow} occupied={occupied} selected={selectedSeats} onToggle={toggleSeat} />
-
-      <form onSubmit={handleSubmit}>
-        <p className="note">
-          {selectedSeats.length > 0
-            ? `Selected (${selectedSeats.length}): ${selectedSeats.map((s) => `R${s.row}-S${s.seat}`).join(', ')}`
-            : 'Pick one or more free seats above.'}
-        </p>
-        {!user && (
-          <>
-            <div className="field">
-              <label>Email</label>
-              <input
-                type="text"
-                value={guestForm.guest_email}
-                onChange={(e) => setGuestForm({ ...guestForm, guest_email: e.target.value })}
-                required
-              />
-            </div>
-            <div className="field">
-              <label>Name (optional)</label>
-              <input
-                type="text"
-                value={guestForm.guest_name}
-                onChange={(e) => setGuestForm({ ...guestForm, guest_name: e.target.value })}
-              />
-            </div>
-          </>
-        )}
-        <button type="submit" disabled={creating || paying || selectedSeats.length === 0}>
-          {creating ? 'Booking…' : `Book ${selectedSeats.length || ''} seat${selectedSeats.length === 1 ? '' : 's'}`}
-        </button>
-      </form>
-
-      {createError && <p className="error">{createError}</p>}
-
-      {booking && (
-        <div className="panel">
-          <p>
-            Booking #{booking[0].group_id}: {booking.map((r) => `R${r.row}-S${r.seat}`).join(', ')}
-          </p>
-          <p className="note">Total: {bookingTotal.toFixed(2)}</p>
-          <button onClick={() => payFor(booking[0].group_id)} disabled={paying}>
-            {paying ? 'Redirecting…' : 'Pay now'}
-          </button>
+      <div className="booking-layout">
+        <div>
+          <div className="page-header">
+            <h2>{t('seats.title')}</h2>
+            <p>{t('seats.help')}</p>
+          </div>
+          <SeatMap rows={rows} seatsPerRow={seatsPerRow} occupied={occupied} selected={selectedSeats} onToggle={toggleSeat} />
         </div>
-      )}
-    </div>
+
+        <aside className="summary">
+          <div className="summary__movie">
+            <Poster title={title} posterPath={movie?.poster_path} size="sm" />
+            <div>
+              <h3>{title}</h3>
+              <div className="muted" style={{ fontSize: 13 }}>
+                {movie && `${formatDuration(movie.duration_minutes)} · `}
+                {formatTime(screening.start_time)}
+              </div>
+            </div>
+          </div>
+
+          <div className="summary__row">
+            <span className="muted">{t('seats.date')}</span>
+            <span>{formatDateLong(screening.start_time)}</span>
+          </div>
+          <div className="summary__row">
+            <span className="muted">{t('seats.ticket')}</span>
+            <span>{formatPrice(seatPrice)}</span>
+          </div>
+
+          <div className="summary__row" style={{ marginBottom: 4 }}>
+            <span className="muted">{t('seats.seats')}</span>
+            <span>{summarySeats.length || '—'}</span>
+          </div>
+          <div className="summary__seats">
+            {summarySeats.length === 0 ? (
+              <span className="muted" style={{ fontSize: 13 }}>{t('seats.none')}</span>
+            ) : (
+              summarySeats.map((s) => (
+                <span className="chip" key={seatKey(s.row, s.seat)}>
+                  {t('seats.chip', { row: s.row, seat: s.seat })}
+                </span>
+              ))
+            )}
+          </div>
+
+          {booking ? (
+            <>
+              <div className="summary__total">
+                <span>{t('common.total')}</span>
+                <strong>{formatPrice(total)}</strong>
+              </div>
+              <button className="btn--lg btn--block" onClick={() => payFor(booking[0].group_id)} disabled={paying}>
+                {paying ? t('seats.redirecting') : t('seats.payNow')}
+              </button>
+              <p className="summary__hint">{t('seats.held', { id: booking[0].group_id })}</p>
+            </>
+          ) : (
+            <form onSubmit={handleSubmit}>
+              {!user && (
+                <>
+                  <div className="field">
+                    <label htmlFor="guest-email">{t('seats.email')}</label>
+                    <input
+                      id="guest-email"
+                      type="email"
+                      placeholder={t('seats.emailPlaceholder')}
+                      value={guestForm.guest_email}
+                      onChange={(e) => setGuestForm({ ...guestForm, guest_email: e.target.value })}
+                      required
+                    />
+                  </div>
+                  <div className="field">
+                    <label htmlFor="guest-name">{t('seats.name')}</label>
+                    <input
+                      id="guest-name"
+                      type="text"
+                      value={guestForm.guest_name}
+                      onChange={(e) => setGuestForm({ ...guestForm, guest_name: e.target.value })}
+                    />
+                  </div>
+                </>
+              )}
+
+              <div className="summary__total">
+                <span>{t('common.total')}</span>
+                <strong>{formatPrice(total)}</strong>
+              </div>
+
+              <button
+                type="submit"
+                className="btn--lg btn--block"
+                disabled={creating || paying || selectedSeats.length === 0}
+              >
+                {creating
+                  ? t('seats.reserving')
+                  : paying
+                    ? t('seats.redirecting')
+                    : selectedSeats.length === 0
+                      ? t('seats.selectToContinue')
+                      : t('seats.continue')}
+              </button>
+              <p className="summary__hint">{t('seats.secure')}</p>
+            </form>
+          )}
+
+          {createError && <div className="alert alert--error">{createError}</div>}
+        </aside>
+      </div>
+    </>
   )
 }
 
