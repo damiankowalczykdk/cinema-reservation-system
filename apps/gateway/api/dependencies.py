@@ -31,6 +31,12 @@ def get_payment_client(client: HttpClient, settings: AuthSettings) -> ServiceReq
 
 PaymentServiceClient = Annotated[ServiceRequestClient, Depends(get_payment_client)]
 
+# AI-SERVICE
+def get_ai_client(client: HttpClient, settings: AuthSettings) -> ServiceRequestClient:
+    return ServiceRequestClient(client, settings.ai_service_url)
+
+AIServiceClient = Annotated[ServiceRequestClient, Depends(get_ai_client)]
+
 # ROLES
 
 CurrentUser = Annotated[TokenPayload, Depends(require_current_user)]

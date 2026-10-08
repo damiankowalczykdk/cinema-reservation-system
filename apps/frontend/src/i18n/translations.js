@@ -6,6 +6,7 @@ const translations = {
   en: {
     'nav.movies': 'Movies',
     'nav.schedule': 'Schedule',
+    'nav.assistant': 'AI Assistant',
     'nav.tickets': 'My tickets',
     'nav.admin': 'Admin',
     'auth.signIn': 'Sign in',
@@ -78,6 +79,14 @@ const translations = {
     'schedule.emptyTitle': 'No showtimes on this day',
     'schedule.emptyBody': 'Try another day or a different cinema.',
 
+    'assistant.title': 'AI Assistant',
+    'assistant.subtitle': 'Book a showtime with me.',
+    'assistant.greeting': "Hi! I'm your AI assistant. I'll help you pick a showtime.",
+    'assistant.placeholder': 'Type a message…',
+    'assistant.send': 'Send',
+    'assistant.thinking': 'Thinking…',
+    'assistant.new': 'New conversation',
+
     'seats.back': '← Back to showtimes',
     'seats.title': 'Choose your seats',
     'seats.help': 'Click a seat to select it, click again to release. You can pick several seats at once.',
@@ -134,6 +143,7 @@ const translations = {
   pl: {
     'nav.movies': 'Filmy',
     'nav.schedule': 'Repertuar',
+    'nav.assistant': 'Asystent AI',
     'nav.tickets': 'Moje bilety',
     'nav.admin': 'Admin',
     'auth.signIn': 'Zaloguj się',
@@ -210,6 +220,14 @@ const translations = {
     'schedule.allCinemas': 'Wszystkie kina',
     'schedule.emptyTitle': 'Brak seansów w tym dniu',
     'schedule.emptyBody': 'Wybierz inny dzień albo inne kino.',
+
+    'assistant.title': 'Asystent AI',
+    'assistant.subtitle': 'Zarezerwuj ze mną seans.',
+    'assistant.greeting': 'Cześć! Jestem Twoim asystentem AI. Pomogę Ci wybrać seans.',
+    'assistant.placeholder': 'Napisz wiadomość…',
+    'assistant.send': 'Wyślij',
+    'assistant.thinking': 'Myślę…',
+    'assistant.new': 'Nowa rozmowa',
 
     'seats.back': '← Wróć do seansów',
     'seats.title': 'Wybierz miejsca',

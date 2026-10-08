@@ -39,9 +39,23 @@ services:
       POSTGRES_PORT: ${POSTGRES_PORT}
       POSTGRES_DB: ${POSTGRES_DB}
 
-
     volumes:
       - ./apps/cinema-service:/app
+    networks:
+      - backend
+  ai-service:
+    build:
+      context: ./apps/ai-service
+      dockerfile: Dockerfile
+    restart: always
+    depends_on:
+      - cinema-service
+    environment:
+      CINEMA_SERVICE_URL: ${CINEMA_SERVICE_URL}
+
+    volumes:
+      - ./apps/ai-service:/app
+
     networks:
       - backend
 
@@ -72,10 +86,14 @@ services:
     restart: always
     depends_on:
       - cinema-service
+      - ai-service
+      - payment-service
     env_file:
       - ./apps/gateway/.env
     environment:
      CINEMA_SERVICE_URL: ${CINEMA_SERVICE_URL}
+     AI_SERVICE_URL: ${AI_SERVICE_URL}
+     PAYMENT_SERVICE_URL: ${PAYMENT_SERVICE_URL}
     ports:
       - "8000:8000"
     volumes:

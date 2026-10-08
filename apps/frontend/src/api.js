@@ -119,6 +119,15 @@ const getOccupiedSeats = (screeningId) => request('GET', `/reservations/screenin
 
 const createPayment = (payload) => request('POST', '/payments', { body: payload }) // { checkout_url }
 
+// --- assistant ---
+// The conversation lives on the model provider's side: send back the response_id from
+// the previous answer and the assistant remembers everything said so far.
+
+const sendChatMessage = (message, previousResponseId) =>
+  request('POST', '/assistants', {
+    body: { message, previous_response_id: previousResponseId ?? undefined },
+  }) // { answer, response_id }
+
 export {
   getLoginUrl,
   getLogoutUrl,
@@ -153,4 +162,5 @@ export {
   deleteReservationGroup,
   getOccupiedSeats,
   createPayment,
+  sendChatMessage,
 }

@@ -1,12 +1,12 @@
-from datetime import datetime, timezone
+from datetime import datetime
 from typing import Sequence
 
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, Row, func, RowMapping
+from sqlalchemy import select, func, RowMapping
 
 from domain.models.cinema import Cinema
 from domain.models.hall import Hall
-from domain.models.movie import Movie
+from domain.models.movie import Movie, Genre
 from domain.models.screening import Screening
 from repositories.generic import GenericRepository
 
@@ -39,6 +39,8 @@ class ScreeningRepository(GenericRepository[Screening]):
             cinema_id: int | None,
             date_from: datetime | None,
             date_to: datetime | None,
+            city: str | None,
+            genre: Genre | None
     ) -> Sequence[RowMapping]:
 
         # conditions = [Screening.start_time > datetime.now(timezone.utc)]
@@ -56,7 +58,11 @@ class ScreeningRepository(GenericRepository[Screening]):
         if date_to is not None:
             conditions.append(Screening.start_time <= date_to)
 
+        if city is not None:
+            conditions.append(func.lower(Cinema.city) == city.lower())
 
+        if genre is not None:
+            conditions.append(Movie.genre == genre)
 
         stmt = (
             select(
@@ -68,7 +74,10 @@ class ScreeningRepository(GenericRepository[Screening]):
                 Hall.id.label("hall_id"),
                 Screening.start_time.label("start_time"),
                 Screening.price.label("price"),
-                Movie.poster_path.label("poster_path")
+                Movie.poster_path.label("poster_path"),
+                Cinema.city.label("city"),
+                Movie.genre.label("genre")
+
             )
             .join(Hall, Hall.id == Screening.hall_id)
             .where(

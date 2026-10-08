@@ -3,6 +3,7 @@ from typing import Mapping, Sequence, Any, cast
 from fastapi import HTTPException
 from httpx import QueryParams
 from starlette import status
+from httpx._client import UseClientDefault
 import httpx
 
 
@@ -24,6 +25,7 @@ class ServiceRequestClient:
             method: str,
             path: str,
             *,
+            timeout: float | UseClientDefault = httpx.USE_CLIENT_DEFAULT,
             json: JsonType = None,
             params: ParamsType = None,
             headers: HeadersType = None,
@@ -33,6 +35,7 @@ class ServiceRequestClient:
             response = await self.client.request(
                 method,
                 url = f"{self.base_url}{path}",
+                timeout = timeout,
                 json=json,
                 params=params,
                 headers=headers,
