@@ -1,4 +1,6 @@
 from contextlib import asynccontextmanager
+
+from api.error_handlers import register_error_handlers
 from core.config import settings
 import httpx
 from fastapi import FastAPI
@@ -14,3 +16,5 @@ async def lifespan(app: FastAPI): # pragma: no cover.
 app = FastAPI(lifespan=lifespan)
 
 app.include_router(assistant_router)
+
+register_error_handlers(app)
