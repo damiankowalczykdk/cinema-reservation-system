@@ -14,7 +14,7 @@ class ShowtimeRead(BaseModel):
     city: str
     genre: str
     start_time: datetime
-    price: str
+    price: int
 
     @field_serializer("start_time")
     def format_start_time(self, value: datetime) -> str:

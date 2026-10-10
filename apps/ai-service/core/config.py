@@ -16,7 +16,7 @@ class Settings(BaseSettings):
     WARSAW: ZoneInfo = ZoneInfo("Europe/Warsaw")
 
     @property
-    def openai_client(self) -> AsyncOpenAI:
+    def openai_client(self) -> AsyncOpenAI: #pragma: no cover
         return AsyncOpenAI(api_key=self.openai_api_key, timeout=self.http_timeout_open_api, max_retries=self.max_retries)
 
 
