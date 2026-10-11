@@ -1,7 +1,7 @@
 from zoneinfo import ZoneInfo
 
 from core.http_client import ServiceRequestClient
-from domain.schemas.assistant import ShowtimeRead
+from domain.schemas.assistant import ShowtimeRead, CreateReservation, ReservationRead, SeatMapRead
 
 WARSAW = ZoneInfo("Europe/Warsaw")
 
@@ -29,3 +29,23 @@ class AssistantService:
         )
 
         return [ShowtimeRead.model_validate(s) for s in responses]
+
+    async def create_reservation(self, create_reservation: CreateReservation, user_id: str | None = None) -> list[ReservationRead]:
+
+        responses: list[dict[str, object]] = await self.cinema_client.request(
+            "POST",
+            "/reservation/",
+            json=create_reservation.model_dump(),
+            headers={"X-User-Id": user_id} if user_id is not None else None,
+        )
+
+        return [ReservationRead.model_validate(r) for r in responses]
+
+    async def get_seats_map(self, screening_id: int) -> SeatMapRead:
+
+        response: dict[str, object] = await self.cinema_client.request(
+          "GET",
+            f"/reservation/screening/{screening_id}/seats",
+        )
+
+        return SeatMapRead.model_validate(response)

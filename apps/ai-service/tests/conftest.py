@@ -7,6 +7,7 @@ import pytest_asyncio
 from httpx import AsyncClient, ASGITransport
 
 from api.dependencies import get_settings
+from domain.schemas.assistant import SeatMapRead
 from main import app
 from core.config import Settings
 import pytest
@@ -41,3 +42,29 @@ def fake_cinema_client():
     }]
 
     return mock
+
+@pytest.fixture
+def fake_cinema_client_reservation_read():
+    mock = AsyncMock()
+    mock.request.return_value = [{
+        "group_id": 1,
+        "screening_id": 1,
+        "guest_email": "test@example.com",
+        "row": 1,
+        "seat": 1,
+        "status": "paiding",
+        "price_paid": Decimal("100")
+
+    }]
+    return mock
+
+@pytest.fixture
+def fake_cinema_client_seat_map():
+    mock = AsyncMock()
+    mock.request.return_value = {
+        "seats": [[1, 1]],
+        "row": 1,
+        "seat_per_row": 1,
+    }
+    return mock
+

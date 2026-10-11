@@ -114,7 +114,8 @@ async def test_search_screening(client: AsyncClient) -> None:
 
     response = await client.get(f"/screening/search",
         params={
-            "movie_id": movie_id, "cinema_id": cinema_id, "date_from": "2026-08-25T18:00:00Z", "date_to": "2026-08-25T18:30:00Z"
+            "movie_id": movie_id, "cinema_id": cinema_id, "date_from": "2026-08-25T18:00:00Z", "date_to": "2026-08-25T18:30:00Z",
+            "city": "Test City", "genre": "crime"
         })
 
     data = response.json()

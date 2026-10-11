@@ -2,7 +2,7 @@
 from typing import Annotated
 
 import httpx
-from fastapi import Depends, Request
+from fastapi import Depends, Request, Header
 
 from core.config import settings, Settings
 from core.http_client import ServiceRequestClient
@@ -29,3 +29,5 @@ def get_ai_service(cinema_client: AIClient) -> AssistantService:
     return AssistantService(cinema_client=cinema_client)
 
 Service = Annotated[AssistantService, Depends(get_ai_service)]
+
+User = Annotated[str | None, Header(alias="X-User-Id")]

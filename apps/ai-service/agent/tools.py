@@ -54,5 +54,62 @@ TOOLS: list[FunctionToolParam] = [
             ],
             "additionalProperties": False
         }
+    },
+{
+        "type": "function",
+        "name": "get_seats_map",
+        "description": "Zwraca układ sali i zajęte miejsca dla wybranego seansu. Wywołaj po wyborze seansu przez użytkownika, zanim zapytasz o miejsca.",
+        "strict": True,
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "screening_id": {
+                    "type": "integer",
+                }
+            },
+            "required": [
+                "screening_id"
+            ],
+            "additionalProperties": False
+        }
+    },
+{
+        "type": "function",
+        "name": "create_reservation",
+        "description": "Sprawdza wolne czy miejsca są wolne natepnie robi rezerwację",
+        "strict": True,
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "screening_id": {
+                    "type": "integer"
+                },
+                 "seats": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "row": {"type": "integer"},
+                            "seat": {"type": "integer"}
+                        },
+                        "required": ["row", "seat"],
+                        "additionalProperties": False
+                    }
+                },
+                "guest_email": {
+                    "type": ["string", "null"],
+                },
+                "guest_name": {
+                    "type": ["string", "null"],
+                }
+            },
+            "required": [
+                "screening_id",
+                "seats",
+                "guest_email",
+                "guest_name"
+            ],
+            "additionalProperties": False
+        }
     }
 ]

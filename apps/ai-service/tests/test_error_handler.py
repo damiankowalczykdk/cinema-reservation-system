@@ -1,6 +1,5 @@
+import httpx2
 from unittest.mock import patch, AsyncMock
-
-import httpx
 from httpx import AsyncClient
 from openai import APIStatusError, APIConnectionError, APITimeoutError
 
@@ -32,7 +31,7 @@ async def test_handler_api_status_error(client: AsyncClient) -> None:
             new_callable= AsyncMock,
             side_effect=APIStatusError(
                 "error",
-                response=httpx.Response(status_code=502, request=httpx.Request("POST", "http://test")), body=None)):
+                response=httpx2.Response(status_code=502, request=httpx2.Request("POST", "http://test")), body=None)):
 
         response = await client.post(
             "/assistant",
@@ -48,7 +47,7 @@ async def test_handler_api_connection_error(client: AsyncClient) -> None:
             "api.routes.assistant.run_agent",
             new_callable= AsyncMock,
             side_effect= APIConnectionError(
-                request=httpx.Request("POST", "http://test"))):
+                request=httpx2.Request("POST", "http://test"))):
 
         response = await client.post(
             "/assistant",
@@ -64,7 +63,7 @@ async def test_handler_api_timeout_error(client: AsyncClient) -> None:
             "api.routes.assistant.run_agent",
             new_callable= AsyncMock,
             side_effect= APITimeoutError(
-                request=httpx.Request("POST", "http://test"))):
+                request=httpx2.Request("POST", "http://test"))):
 
         response = await client.post(
             "/assistant",

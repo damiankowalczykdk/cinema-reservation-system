@@ -14,6 +14,7 @@ def test_settings() -> Auth0Settings:
     return Auth0Settings(
         cinema_service_url="http://mock-cinema-service",
         payment_service_url="http://mock-payment-service",
+        ai_service_url="http://mock-ai-service",
         http_timeout=5
     ) #type: ignore
 
