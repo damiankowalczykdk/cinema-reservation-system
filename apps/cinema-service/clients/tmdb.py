@@ -11,7 +11,7 @@ class TMDBClient:
         self.tmdb_api_token = tmdb_api_token
         self.tmdb_base_address = tmdb_base_address
 
-    async def get_poster_path(self, title: str, year: int) -> str | None:
+    async def get_poster_path(self, title: str, year: int) -> tuple[str | None, int | None]:
         try:
             params: ParamsType = {"query": title, "year": year}
             headers = {"Authorization": f"Bearer {self.tmdb_api_token}"}
@@ -21,18 +21,49 @@ class TMDBClient:
             )
 
         except httpx.RequestError:
+            return None, None
+
+        if response.status_code >= 400:
+            return None, None
+
+        result = response.json()
+        list_result = result.get("results", [])
+
+        if not list_result:
+            return None, None
+
+        return list_result[0]["poster_path"], list_result[0]["id"]
+
+    async def get_trailer_key(self, tmdb_id: int) -> str | None:
+        try:
+            headers = {"Authorization": f"Bearer {self.tmdb_api_token}"}
+
+            response = await self.client.request(
+                "GET",
+                f"{self.tmdb_base_address}/movie/{tmdb_id}/videos",
+                headers=headers,
+            )
+        except httpx.RequestError:
             return None
 
         if response.status_code >= 400:
             return None
 
         result = response.json()
+
+
         list_result = result.get("results", [])
 
-        if not list_result:
-            return None
+        for r in list_result:
+            if r["site"] == "YouTube" and r["type"] == "Trailer":
+                return r["key"]
 
-        return list_result[0]["poster_path"]
+        for r in list_result:
+            if r["site"] == "YouTube" and r["type"] == "Teaser":
+                return r["key"]
+
+        return None
+
 
 
 

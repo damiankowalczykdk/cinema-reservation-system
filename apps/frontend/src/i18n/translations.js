@@ -6,6 +6,7 @@ const translations = {
   en: {
     'nav.movies': 'Movies',
     'nav.schedule': 'Schedule',
+    'nav.trailers': 'Trailers',
     'nav.assistant': 'AI Assistant',
     'nav.tickets': 'My tickets',
     'nav.admin': 'Admin',
@@ -79,6 +80,14 @@ const translations = {
     'schedule.allCinemas': 'All cinemas',
     'schedule.emptyTitle': 'No showtimes on this day',
     'schedule.emptyBody': 'Try another day or a different cinema.',
+
+    'trailers.title': 'Trailers',
+    'trailers.subtitle': 'Watch the trailers of movies now in cinemas.',
+    'trailers.play': 'Play the trailer for {title}',
+    'trailers.frameTitle': '{title} trailer',
+    'trailers.showtimes': 'See showtimes',
+    'trailers.emptyTitle': 'No trailers yet',
+    'trailers.emptyBody': 'Trailers will show up here once movies in the schedule have them.',
 
     'assistant.title': 'AI Assistant',
     'assistant.subtitle': 'Book a showtime with me.',
@@ -157,6 +166,7 @@ const translations = {
   pl: {
     'nav.movies': 'Filmy',
     'nav.schedule': 'Repertuar',
+    'nav.trailers': 'Zwiastuny',
     'nav.assistant': 'Asystent AI',
     'nav.tickets': 'Moje bilety',
     'nav.admin': 'Admin',
@@ -235,6 +245,14 @@ const translations = {
     'schedule.allCinemas': 'Wszystkie kina',
     'schedule.emptyTitle': 'Brak seansów w tym dniu',
     'schedule.emptyBody': 'Wybierz inny dzień albo inne kino.',
+
+    'trailers.title': 'Zwiastuny',
+    'trailers.subtitle': 'Obejrzyj zwiastuny filmów, które są teraz w kinach.',
+    'trailers.play': 'Odtwórz zwiastun filmu {title}',
+    'trailers.frameTitle': 'Zwiastun filmu {title}',
+    'trailers.showtimes': 'Zobacz seanse',
+    'trailers.emptyTitle': 'Brak zwiastunów',
+    'trailers.emptyBody': 'Zwiastuny pojawią się tutaj, gdy filmy z repertuaru będą je miały.',
 
     'assistant.title': 'Asystent AI',
     'assistant.subtitle': 'Zarezerwuj ze mną seans.',

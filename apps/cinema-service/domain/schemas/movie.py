@@ -27,3 +27,4 @@ class MovieRead(BaseModel):
     genre: Genre
     release_date: date
     poster_path: str | None
+    trailer_key: str | None

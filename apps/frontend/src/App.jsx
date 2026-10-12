@@ -10,6 +10,7 @@ import MyReservations from './pages/MyReservations.jsx'
 import MoviesBrowse from './pages/MoviesBrowse.jsx'
 import MovieDetail from './pages/MovieDetail.jsx'
 import Schedule from './pages/Schedule.jsx'
+import Trailers from './pages/Trailers.jsx'
 import Assistant from './pages/Assistant.jsx'
 import entities from './entities.js'
 import './App.css'
@@ -20,6 +21,7 @@ function App() {
       <Route element={<AppShell />}>
         <Route path="/" element={<MoviesBrowse />} />
         <Route path="/schedule" element={<Schedule />} />
+        <Route path="/trailers" element={<Trailers />} />
         <Route path="/assistant" element={<Assistant />} />
         <Route path="/movies/:movieId" element={<MovieDetail />} />
         <Route path="/screenings/:screeningId" element={<SeatSelection />} />
