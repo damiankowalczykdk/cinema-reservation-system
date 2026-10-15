@@ -120,13 +120,13 @@ const getOccupiedSeats = (screeningId) => request('GET', `/reservations/screenin
 const createPayment = (payload) => request('POST', '/payments', { body: payload }) // { checkout_url }
 
 // --- assistant ---
-// The conversation lives on the model provider's side: send back the response_id from
+// The conversation history lives in ai-service (Redis): send back the conversation_id from
 // the previous answer and the assistant remembers everything said so far.
 
-const sendChatMessage = (message, previousResponseId) =>
+const sendChatMessage = (message, conversationId) =>
   request('POST', '/assistants', {
-    body: { message, previous_response_id: previousResponseId ?? undefined },
-  }) // { answer, response_id }
+    body: { message, conversation_id: conversationId ?? undefined },
+  }) // { answer, conversation_id, reservation, seats_map_screening_id }
 
 export {
   getLoginUrl,

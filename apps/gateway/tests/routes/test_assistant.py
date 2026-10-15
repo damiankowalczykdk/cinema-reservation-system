@@ -14,7 +14,7 @@ async def test_chat(client: AsyncClient, test_settings: Auth0Settings) -> None:
     respx.post(f"{test_settings.ai_service_url}/assistant", json=payload.model_dump(mode="json")).mock(
         return_value=Response(200, json={
             "answer": "Test Answer",
-            "response_id": "resp_1"
+            "conversation_id": "resp_1"
         })
     )
 

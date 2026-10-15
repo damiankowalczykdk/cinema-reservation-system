@@ -1,5 +1,5 @@
 import pytest
-from unittest.mock import MagicMock, AsyncMock
+from unittest.mock import AsyncMock
 from domain.schemas.assistant import CreateReservation, SeatInput
 from service.assistant import AssistantService
 

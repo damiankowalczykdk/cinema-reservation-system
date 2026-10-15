@@ -60,6 +60,8 @@ class MovieService:
         if tmdb_id is not None:
             trailer_key = await self.tmdb_client.get_trailer_key(tmdb_id)
 
+        trailer = trailer_key if trailer_key is not None else movie.trailer_key
+
         existing_movie = await self.repository.get_movie_by_title_and_release_date(title, release_date)
         if existing_movie and existing_movie.id != movie.id:
             raise ConflictException("Movie already exists")
@@ -71,7 +73,7 @@ class MovieService:
             "genre": update_movie.genre,
             "release_date": update_movie.release_date,
             "poster_path": poster,
-            "trailer_key": trailer_key
+            "trailer_key": trailer
         })
 
         return await self.repository.add(movie)

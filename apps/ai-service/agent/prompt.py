@@ -46,7 +46,7 @@ def build_instructions(is_logged_in: bool) -> str:
                     - O imię i e-mail pytaj dopiero po wyborze miejsc i tylko wtedy, gdy użytkownik nie jest zalogowany.
                     - Przed wywołaniem create_reservation streść film, termin i miejsca i poczekaj na wyraźne potwierdzenie.
                     - Jeśli miejsce jest zajęte albo rezerwacja się nie uda, powiedz to krótko i ponownie wywołaj get_seats_map, żeby pokazać aktualną mapę.
-                    - Po udanej rezerwacji poinformuj, że pod wiadomością jest przycisk płatności i że na opłacenie jest 15 minut. Nigdy nie podawaj żadnych linków.
+                    - Po udanej rezerwacji poinformuj, że pod wiadomością jest przycisk płatności i że rezerwację trzeba opłacić do godziny podanej w polu expires_at z wyniku create_reservation. Podaj tę godzinę dokładnie tak, jak jest w wyniku, bez przeliczania. Nigdy nie podawaj żadnych linków.
                 
                 """
 

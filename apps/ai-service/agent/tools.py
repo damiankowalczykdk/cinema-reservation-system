@@ -40,11 +40,11 @@ TOOLS: list[FunctionToolParam] = [
                 },
                 "after": {
                     "type": ["string", "null"],
-                    "description": "Najwcześniejsza data i godzina seansu w formacie ISO 8601, np. 2026-10-07T19:00:00+02:00. Null, jeśli użytkownik nie podał pory."
+                    "description": "Najwcześniejsza data i godzina seansu w formacie ISO 8601. Null, jeśli użytkownik nie podał ani dnia, ani pory. Gdy pyta o konkretny dzień, after to początek tego dnia, np. dla 13 października: 2026-10-13T00:00:00+02:00."
                 },
                 "before": {
                     "type": ["string", "null"],
-                    "description": "Najpozniejsza data i godzina seansu w formacie ISO 8601, np. 2026-10-07T19:00:00+02:00. Null, jeśli użytkownik nie podał pory. gdy użytkownik pyta o konkretny dzień, after to początek tego dnia (00:00), a before to początek następnego."
+                    "description": "Najpóźniejsza data i godzina seansu w formacie ISO 8601. Null, jeśli użytkownik nie podał ani dnia, ani pory. Gdy pyta o konkretny dzień, before to początek NASTĘPNEGO dnia, np. dla 13 października: 2026-10-14T00:00:00+02:00."
                 }
             },
             "required": [
@@ -87,6 +87,7 @@ TOOLS: list[FunctionToolParam] = [
                 },
                  "seats": {
                     "type": "array",
+                    "minItems": 1,
                     "items": {
                         "type": "object",
                         "properties": {

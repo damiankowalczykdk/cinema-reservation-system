@@ -17,6 +17,10 @@ from api.routes.payment import router as payment_router
 from api.routes.assistant import router as assistant_router
 
 from core.config import get_settings
+from core.rate_limit import limiter
+
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
 
 settings = get_settings()
 
@@ -27,10 +31,11 @@ async def lifespan(app: FastAPI): # pragma: no cover.
     await app.state.http_client.aclose()
 
 app = FastAPI(lifespan=lifespan)
-
+app.state.limiter = limiter
 
 register_error_handlers(app)
 
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler) # type: ignore[arg-type]
 
 app.add_middleware(
     CORSMiddleware,

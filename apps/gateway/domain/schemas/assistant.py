@@ -1,8 +1,9 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
+
 
 class AssistantRequest(BaseModel):
-    message: str
-    previous_response_id: str | None = None
+    message: str = Field(max_length=1000)
+    conversation_id: str | None = None
 
 class ReservationInfo(BaseModel):
     group_id: int
@@ -10,6 +11,6 @@ class ReservationInfo(BaseModel):
 
 class AssistantResponse(BaseModel):
     answer: str
-    response_id: str
+    conversation_id: str
     reservation: ReservationInfo | None = None
     seats_map_screening_id: int | None = None

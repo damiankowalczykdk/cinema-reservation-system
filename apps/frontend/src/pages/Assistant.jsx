@@ -30,8 +30,8 @@ function Assistant() {
   const [sending, setSending] = useState(false)
   const [paying, setPaying] = useState(false)
   const [error, setError] = useState(null)
-  // id of the assistant's last answer; sending it back is what gives the chat its memory
-  const [responseId, setResponseId] = useState(null)
+  // id of the conversation; sending it back is what gives the chat its memory
+  const [conversationId, setConversationId] = useState(null)
   const logRef = useRef(null)
 
   useEffect(() => {
@@ -47,7 +47,7 @@ function Assistant() {
     setError(null)
     setSending(true)
     try {
-      const data = await sendChatMessage(message, responseId)
+      const data = await sendChatMessage(message, conversationId)
       setMessages((prev) => [
         ...prev,
         {
@@ -57,7 +57,7 @@ function Assistant() {
           seatMapScreeningId: data.seats_map_screening_id ?? null,
         },
       ])
-      if (data.response_id) setResponseId(data.response_id)
+      if (data.conversation_id) setConversationId(data.conversation_id)
     } catch (err) {
       setError(err.message)
     } finally {
@@ -89,7 +89,7 @@ function Assistant() {
 
   function reset() {
     setMessages([])
-    setResponseId(null)
+    setConversationId(null)
     setError(null)
   }
 

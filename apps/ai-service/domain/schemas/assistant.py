@@ -9,13 +9,13 @@ class ReservationInfo(BaseModel):
 
 class AssistantResponse(BaseModel):
     answer: str
-    response_id: str
+    conversation_id: str
     reservation: ReservationInfo | None = None
     seats_map_screening_id: int | None = None
 
 class AssistantRequest(BaseModel):
-    message: str
-    previous_response_id: str | None = None
+    message: str = Field(max_length=1000)
+    conversation_id: str | None = None
 
 class ShowtimeRead(BaseModel):
     screening_id: int
@@ -54,5 +54,10 @@ class ReservationRead(BaseModel):
     seat: int
     status: str
     price_paid: Decimal
+    expires_at: datetime
+
+    @field_serializer("expires_at")
+    def format_expires_at(self, value: datetime) -> str:
+        return value.astimezone(settings.WARSAW).strftime("%H:%M")
 
 

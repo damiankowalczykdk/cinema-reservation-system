@@ -50,8 +50,10 @@ services:
     restart: always
     depends_on:
       - cinema-service
+      - redis
     environment:
       CINEMA_SERVICE_URL: ${CINEMA_SERVICE_URL}
+      REDIS_URL: ${REDIS_URL}
 
     volumes:
       - ./apps/ai-service:/app
@@ -106,6 +108,12 @@ services:
     command: listen --api-key ${STRIPE_SECRET_KEY} --all-snapshot --forward-to payment-service:8002/payment/webhook
     depends_on:
       - payment-service
+    networks:
+      - backend
+
+  redis:
+    image: redis:7-alpine
+    restart: always
     networks:
       - backend
 

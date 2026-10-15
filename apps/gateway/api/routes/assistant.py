@@ -1,5 +1,6 @@
-from fastapi import APIRouter, status, Depends
+from fastapi import APIRouter, status, Depends, Request
 from api.dependencies import AIServiceClient
+from core.rate_limit import limiter
 from core.security import get_current_user
 from domain.schemas.assistant import AssistantRequest, AssistantResponse
 from core.config import settings
@@ -7,8 +8,11 @@ from domain.schemas.auth import TokenPayload
 
 router = APIRouter(prefix="/assistants", tags=["Assistant AI"])
 
+
 @router.post("", response_model=AssistantResponse, status_code=status.HTTP_200_OK)
+@limiter.limit("10/minute")
 async def chat(
+        request: Request,
         payload: AssistantRequest,
         ai_client: AIServiceClient,
         current_user: TokenPayload | None = Depends(get_current_user)
