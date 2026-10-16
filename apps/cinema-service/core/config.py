@@ -18,6 +18,9 @@ class DatabaseSettings(BaseSettings):
 
     http_timeout: float = 5.0
 
+    temporal_address: str
+    task_queue: str = "reservations"
+
 
     @property
     def POSTGRES_URI(self) -> str:

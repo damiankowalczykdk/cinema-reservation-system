@@ -2,6 +2,8 @@ from contextlib import asynccontextmanager
 
 import httpx
 from fastapi import FastAPI
+from temporalio.client import Client
+
 from api.routes.cinema import router as cinema_router
 from api.routes.hall import router as hall_router
 from api.error_handlers import register_error_handlers
@@ -15,10 +17,11 @@ from core.config import database_settings
 @asynccontextmanager
 async def lifespan(app: FastAPI): # pragma: no cover.
     app.state.tmdb = httpx.AsyncClient(timeout=database_settings.http_timeout)
+    app.state.temporal_client = await Client.connect(database_settings.temporal_address)
     yield
     await app.state.tmdb.aclose()
 
-app = FastAPI()
+app = FastAPI(lifespan=lifespan)
 
 register_error_handlers(app)
 app.include_router(cinema_router)

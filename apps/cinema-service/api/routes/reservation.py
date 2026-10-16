@@ -50,3 +50,8 @@ async def delete_reservation_group(group_id: int, service: ReservationServiceDep
 async def set_confirm_reservation(group_id: int, service: ReservationServiceDep) -> None:
     await service.set_confirm_reservation(group_id)
 
+@router.post("/{group_id}/expire", status_code=status.HTTP_200_OK, summary="Expire reservation")
+async def expire_group(group_id: int, service: ReservationServiceDep) -> None:
+    await service.expire_group(group_id)
+
+    

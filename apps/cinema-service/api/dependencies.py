@@ -1,7 +1,9 @@
 from typing import Annotated, AsyncIterator
-from fastapi import Depends, Header
-from httpx import Request, AsyncClient
+from fastapi import Depends, Header, Request
+from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
+from temporalio.client import Client
+
 from clients.tmdb import TMDBClient
 from core.config import database_settings
 from core.database import get_db
@@ -16,6 +18,12 @@ from services.movie import MovieService
 from services.reservation import ReservationService
 from services.screening import ScreeningService
 
+
+#TEMPORAL
+def get_temporal_client(request: Request) -> Client:
+    return request.app.state.temporal_client
+
+TemporalClient = Annotated[Client, Depends(get_temporal_client)]
 
 # CINEMA
 
@@ -90,9 +98,10 @@ ReservationRepoDep = Annotated[ReservationRepository, Depends(get_reservation_re
 def get_reservation_service(
         reservation_repository: ReservationRepoDep,
         hall_repository: HallRepoDep,
-        screening_repository: ScreeningRepoDep
+        screening_repository: ScreeningRepoDep,
+        temporal_client: TemporalClient
 ) -> ReservationService:
-    return ReservationService(reservation_repository, hall_repository, screening_repository)
+    return ReservationService(reservation_repository, hall_repository, screening_repository, temporal_client)
 
 ReservationServiceDep = Annotated[ReservationService, Depends(get_reservation_service)]
 

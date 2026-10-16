@@ -32,12 +32,16 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      temporal:
+        condition: service_started
+
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_HOST: ${POSTGRES_HOST}
       POSTGRES_PORT: ${POSTGRES_PORT}
       POSTGRES_DB: ${POSTGRES_DB}
+      TEMPORAL_ADDRESS: ${TEMPORAL_ADDRESS}
 
     volumes:
       - ./apps/cinema-service:/app
@@ -57,6 +61,23 @@ services:
 
     volumes:
       - ./apps/ai-service:/app
+
+    networks:
+      - backend
+
+  worker-service:
+    build:
+      context: ./apps/worker-service
+      dockerfile: Dockerfile
+    restart: always
+    depends_on:
+      - temporal
+      - cinema-service
+    environment:
+      CINEMA_SERVICE_URL: ${CINEMA_SERVICE_URL}
+      TEMPORAL_ADDRESS: ${TEMPORAL_ADDRESS}
+    volumes:
+      - ./apps/worker-service:/app
 
     networks:
       - backend
@@ -129,6 +150,15 @@ services:
           curl -fsS -X POST http://cinema-service:8001/reservation/expire-stale || echo "expire-stale failed"
           sleep 60
         done
+    networks:
+      - backend
+
+  temporal:
+    image: temporalio/temporal
+    restart: always
+    command: ["server", "start-dev", "--ip", "0.0.0.0"]
+    ports:
+      - "8233:8233"
     networks:
       - backend
 

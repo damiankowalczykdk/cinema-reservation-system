@@ -2,6 +2,8 @@ from datetime import timedelta, datetime, timezone
 from decimal import Decimal
 from typing import Sequence
 
+from temporalio.client import Client
+
 from core.config import database_settings
 from core.exceptions import NotFoundException, ValidationException, ConflictException, UnauthorizedException
 from domain.models.reservation import Reservation, Status
@@ -16,11 +18,13 @@ class ReservationService:
             self,
             reservation_repository: ReservationRepository,
             hall_repository: HallRepository,
-            screening_repository: ScreeningRepository
+            screening_repository: ScreeningRepository,
+            temporal_client: Client
     ) -> None:
         self.reservation_repository = reservation_repository
         self.hall_repository = hall_repository
         self.screening_repository = screening_repository
+        self.temporal_client = temporal_client
 
     async def create_reservation(self, create_reservation: CreateReservation, user_id: str | None = None) -> list[Reservation]:
         screening = await self.screening_repository.get_by_id(create_reservation.screening_id)
@@ -71,7 +75,16 @@ class ReservationService:
 
             ))
 
-        return await self.reservation_repository.add_all(reservations)
+        reservations = await self.reservation_repository.add_all(reservations)
+
+        await self.temporal_client.start_workflow(
+            "ReservationWorkflow",
+            id=f"reservations-{group_id}",
+            args=[group_id, database_settings.hold_minutes],
+            task_queue=database_settings.task_queue
+        )
+
+        return reservations
 
 
     async def get_reservations_by_group_id(self, group_id: int) -> Sequence[Reservation]:
@@ -114,6 +127,15 @@ class ReservationService:
 
     async def expire_stale(self) -> None:
         await self.reservation_repository.expire_all_stale()
+
+    async def expire_group(self, group_id: int) -> list[Reservation]:
+        reservations = await self._check_group(group_id, lock=True)
+
+        for r in reservations:
+            if r.status == Status.PENDING and r.expires_at < datetime.now(timezone.utc):
+                r.status = Status.CANCELLED
+
+        return await self.reservation_repository.add_all(list(reservations))
 
 
     async def cancel_reservation(
