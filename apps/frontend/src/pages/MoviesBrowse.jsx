@@ -19,12 +19,31 @@ function groupByMovie(screenings) {
   return [...movies.values()].sort((a, b) => a.movie_title.localeCompare(b.movie_title))
 }
 
+// how long each movie stays in the hero before the next one slides in
+const HERO_INTERVAL_MS = 8000
+
 function MoviesBrowse() {
   const { t } = useI18n()
   const [movies, setMovies] = useState(null)
   const [details, setDetails] = useState({}) // movie_id -> MovieRead (genre, duration, description)
   const [error, setError] = useState(null)
   const [genre, setGenre] = useState('all')
+  const [heroIndex, setHeroIndex] = useState(0)
+  const [heroPaused, setHeroPaused] = useState(false) // hovering or focusing the hero holds the current movie
+
+  // the hero cycles through every movie that is playing, busiest first
+  const rotation = useMemo(
+    () => (movies ? [...movies].sort((a, b) => b.showtimeCount - a.showtimeCount) : []),
+    [movies]
+  )
+
+  // a timeout re-armed on every change (not an interval), so picking a dot restarts the countdown
+  useEffect(() => {
+    if (heroPaused || rotation.length < 2) return
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
+    const id = setTimeout(() => setHeroIndex((i) => (i + 1) % rotation.length), HERO_INTERVAL_MS)
+    return () => clearTimeout(id)
+  }, [heroIndex, heroPaused, rotation.length])
 
   useEffect(() => {
     let cancelled = false
@@ -75,15 +94,22 @@ function MoviesBrowse() {
     )
   }
 
-  const featured = [...movies].sort((a, b) => b.showtimeCount - a.showtimeCount)[0]
+  const featured = rotation[heroIndex % rotation.length]
   const featuredDetail = details[featured.movie_id]
   const visible = genre === 'all' ? movies : movies.filter((m) => details[m.movie_id]?.genre === genre)
 
   return (
     <>
-      <section className="hero">
-        <div className="hero__backdrop" style={posterStyle(featured.movie_title)} />
-        <div>
+      <section
+        className="hero"
+        onMouseEnter={() => setHeroPaused(true)}
+        onMouseLeave={() => setHeroPaused(false)}
+        onFocus={() => setHeroPaused(true)}
+        onBlur={() => setHeroPaused(false)}
+      >
+        {/* keyed by movie so React remounts these on every change and the fade-in replays */}
+        <div key={`bg-${featured.movie_id}`} className="hero__backdrop" style={posterStyle(featured.movie_title)} />
+        <div key={featured.movie_id} className="hero__slide">
           <span className="hero__eyebrow">{t('browse.featured')}</span>
           <h1>{featured.movie_title}</h1>
           {featuredDetail && (
@@ -102,7 +128,27 @@ function MoviesBrowse() {
             <span className="meta">{t('browse.next', { day: dayLabel(featured.next), time: formatTime(featured.next) })}</span>
           </div>
         </div>
-        <Poster title={featured.movie_title} genre={featuredDetail?.genre} posterPath={featuredDetail?.poster_path} size="lg" />
+        <Poster
+          key={`poster-${featured.movie_id}`}
+          title={featured.movie_title}
+          genre={featuredDetail?.genre}
+          posterPath={featuredDetail?.poster_path}
+          size="lg"
+        />
+        {rotation.length > 1 && (
+          <div className="hero__dots">
+            {rotation.map((m, i) => (
+              <button
+                key={m.movie_id}
+                type="button"
+                className={`hero__dot${i === heroIndex ? ' hero__dot--active' : ''}`}
+                aria-label={t('browse.featuredGo', { title: m.movie_title })}
+                aria-current={i === heroIndex}
+                onClick={() => setHeroIndex(i)}
+              />
+            ))}
+          </div>
+        )}
       </section>
 
       <div className="section-head">

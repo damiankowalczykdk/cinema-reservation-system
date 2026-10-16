@@ -35,6 +35,7 @@ class Movie(Base):
     genre: Mapped[Genre] = mapped_column(SaEnum(Genre), nullable=False)
     release_date: Mapped[date] = mapped_column(Date, nullable=False)
     poster_path: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    trailer_key: Mapped[str | None] = mapped_column(String(255), nullable=True)
 
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(tz=timezone.utc))
 

@@ -1,0 +1,40 @@
+[project]
+name = "ai-service"
+version = "0.1.0"
+description = ""
+authors = [
+    {name = "Damian",email = "damiankowalczyk3688@gmail.com"}
+]
+requires-python = ">=3.13"
+dependencies = [
+    "fastapi[standard] (>=0.139.2,<0.140.0)",
+    "openai (>=3.5.0,<4.0.0)",
+    "pydantic (>=2.13.4,<3.0.0)",
+    "uvicorn (>=0.52.4,<0.53.0)",
+    "pydantic-settings (>=2.15.0,<3.0.0)",
+    "tzdata (>=2026.5,<2027.0)",
+    "redis (>=8.1.0,<9.0.0)",
+
+]
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.3.0"
+mypy = "^2.3.0"
+pytest-cov = "^6.3.0"
+pytest-asyncio = "^1.4.0"
+testcontainers = {extras = ["postgres"], version = "^4.15.0"}
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry]
+package-mode = false
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "session"
+asyncio_default_test_loop_scope = "session"
+
+[tool.coverage.run]
+omit = ["api/dependencies.py"]

@@ -1,3 +1,5 @@
+from unittest.mock import AsyncMock
+
 import pytest
 import pytest_asyncio
 from typing import AsyncGenerator
@@ -40,3 +42,11 @@ async def client(db_session):
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
         yield client
     app.dependency_overrides.clear()
+
+@pytest.fixture
+def mock_tmdb_client() -> AsyncMock:
+    mock = AsyncMock()
+    mock.get_poster_path.return_value = ("test.jpg", 1)
+    mock.get_trailer_key.return_value = "test_key"
+
+    return mock

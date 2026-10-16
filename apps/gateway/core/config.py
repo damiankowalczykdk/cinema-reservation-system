@@ -15,9 +15,11 @@ class Auth0Settings(BaseSettings):
 
     http_timeout: int
     http_timeout_health_check: int
+    http_timeout_llm: int
 
     cinema_service_url: str
     payment_service_url: str
+    ai_service_url: str
 
     default_currency: str = "usd"
 

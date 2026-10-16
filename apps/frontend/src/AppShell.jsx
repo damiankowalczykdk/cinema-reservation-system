@@ -53,6 +53,8 @@ function AppShell() {
           <nav className="topnav">
             <NavLink to="/" end className={linkClass}>{t('nav.movies')}</NavLink>
             <NavLink to="/schedule" className={linkClass}>{t('nav.schedule')}</NavLink>
+            <NavLink to="/trailers" className={linkClass}>{t('nav.trailers')}</NavLink>
+            <NavLink to="/assistant" className={linkClass}>{t('nav.assistant')}</NavLink>
             {user && <NavLink to="/my-reservations" className={linkClass}>{t('nav.tickets')}</NavLink>}
             {isAdmin && <NavLink to="/admin" className={linkClass}>{t('nav.admin')}</NavLink>}
           </nav>

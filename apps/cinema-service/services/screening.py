@@ -100,7 +100,9 @@ class ScreeningService:
             search_screening.movie_id,
             search_screening.cinema_id,
             search_screening.date_from,
-            search_screening.date_to
+            search_screening.date_to,
+            search_screening.city,
+            search_screening.genre
         )
 
         return screenings

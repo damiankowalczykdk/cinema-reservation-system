@@ -46,3 +46,4 @@ class ReservationRead(BaseModel):
     seat: int
     status: Status
     price_paid: Decimal
+    expires_at: datetime

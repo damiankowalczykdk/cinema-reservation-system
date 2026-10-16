@@ -3,7 +3,9 @@ import { Section, ResultBlock, useAction, Field } from './ui.jsx'
 
 function castValue(field, raw) {
   if (field.type === 'number') return raw === '' ? undefined : Number(raw)
-  return raw // text, decimal (kept as string, exact), select, date, datetime-local
+  // the input holds wall-clock time with no zone; sent as-is the backend would read it as UTC
+  if (field.type === 'datetime-local') return raw === '' ? raw : new Date(raw).toISOString()
+  return raw // text, decimal (kept as string, exact), select, date
 }
 
 function emptyForm(fields) {

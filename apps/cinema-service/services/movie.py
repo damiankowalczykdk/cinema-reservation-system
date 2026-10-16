@@ -15,7 +15,10 @@ class MovieService:
         if await self.repository.get_movie_by_title_and_release_date(create_movie.title, create_movie.release_date):
             raise ConflictException("Movie already exists")
 
-        poster_path = await self.tmdb_client.get_poster_path(create_movie.title, create_movie.release_date.year)
+        poster_path, tmdb_id = await self.tmdb_client.get_poster_path(create_movie.title, create_movie.release_date.year)
+        trailer_key = None
+        if tmdb_id is not None:
+            trailer_key = await self.tmdb_client.get_trailer_key(tmdb_id)
 
         movie = Movie(
             title=create_movie.title,
@@ -23,7 +26,8 @@ class MovieService:
             duration_minutes=create_movie.duration_minutes,
             genre=create_movie.genre,
             release_date=create_movie.release_date,
-            poster_path=poster_path
+            poster_path=poster_path,
+            trailer_key=trailer_key
         )
 
         return await self.repository.add(movie)
@@ -49,8 +53,14 @@ class MovieService:
         title = update_movie.title if update_movie.title is not None else movie.title
         release_date = update_movie.release_date if update_movie.release_date is not None else movie.release_date
 
-        poster_path = await self.tmdb_client.get_poster_path(title, release_date.year)
+        poster_path, tmdb_id = await self.tmdb_client.get_poster_path(title, release_date.year)
         poster = poster_path if poster_path is not None else movie.poster_path
+
+        trailer_key = None
+        if tmdb_id is not None:
+            trailer_key = await self.tmdb_client.get_trailer_key(tmdb_id)
+
+        trailer = trailer_key if trailer_key is not None else movie.trailer_key
 
         existing_movie = await self.repository.get_movie_by_title_and_release_date(title, release_date)
         if existing_movie and existing_movie.id != movie.id:
@@ -62,7 +72,8 @@ class MovieService:
             "duration_minutes": update_movie.duration_minutes,
             "genre": update_movie.genre,
             "release_date": update_movie.release_date,
-            "poster_path": poster
+            "poster_path": poster,
+            "trailer_key": trailer
         })
 
         return await self.repository.add(movie)

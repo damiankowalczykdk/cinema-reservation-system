@@ -2,6 +2,8 @@ from datetime import datetime
 from decimal import Decimal
 from pydantic import BaseModel, ConfigDict
 
+from domain.models.movie import Genre
+
 
 class CreateScreening(BaseModel):
     movie_id: int
@@ -20,6 +22,8 @@ class SearchScreening(BaseModel):
     cinema_id: int | None = None
     date_from: datetime | None = None
     date_to: datetime | None = None
+    city: str | None = None
+    genre: Genre | None = None
 
 class SearchScreeningRead(BaseModel):
     screening_id: int
@@ -30,6 +34,8 @@ class SearchScreeningRead(BaseModel):
     hall_id: int
     start_time: datetime
     price: Decimal
+    city: str
+    genre: Genre
 
 class ScreeningRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
