@@ -1,6 +1,7 @@
 import asyncio
 from datetime import timedelta, datetime
 from temporalio import workflow
+from temporalio.common import RetryPolicy
 
 with workflow.unsafe.imports_passed_through():
     from activities import ReservationActivities
@@ -25,7 +26,8 @@ class ReservationWorkflow:
                 await workflow.execute_activity_method(
                     ReservationActivities.expire_reservation,
                     group_id,
-                    start_to_close_timeout=timedelta(seconds=10)
+                    start_to_close_timeout=timedelta(seconds=10),
+                    retry_policy=RetryPolicy(maximum_attempts=3)
                 )
                 return
 
