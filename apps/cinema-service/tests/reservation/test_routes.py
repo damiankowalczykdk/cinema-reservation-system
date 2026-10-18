@@ -477,11 +477,58 @@ async def test_extend(client: AsyncClient) -> None:
     assert "expires_at" in data_extend
 
 
-async def test_expire_stale(client: AsyncClient) -> None:
 
-    res = await client.post("/reservation/expire-stale")
+async def test_expire_group(client: AsyncClient) -> None:
+    payload_cinema = {
+        "name": "Test Cinema",
+        "city": "Test City",
+        "address": "Test Address"
+    }
+    response_cinema = await client.post("/cinema/", json=payload_cinema)
 
-    assert res.status_code == 204
+    cinema_id = response_cinema.json()["id"]
+
+    payload_movie = {
+        "title": "Movie",
+        "description": "Movie description",
+        "duration_minutes": 60,
+        "genre": "crime",
+        "release_date": "2026-08-23",
+    }
+
+    response_movie = await client.post("/movie/", json=payload_movie)
+    movie_id = response_movie.json()["id"]
+
+    payload_hall = {
+        "cinema_id": cinema_id,
+        "name": "Test Hall",
+        "rows": 10,
+        "seats_per_row": 10
+    }
+    response_hall = await client.post("/hall/", json=payload_hall)
+    hall_id = response_hall.json()["id"]
+
+    payload_screening = {
+        "movie_id": movie_id,
+        "hall_id": hall_id,
+        "start_time": (datetime.now(timezone.utc) + timedelta(days=1)).isoformat(),
+        "price": 19.99
+    }
+
+    response_screening = await client.post("/screening/", json=payload_screening)
+    screening_id = response_screening.json()["id"]
+
+    payload = {
+        "screening_id": screening_id,
+        "seats": [{"row": 1, "seat": 1}],
+        "guest_email": "example@example.com"
+    }
+
+    response_reservation = await client.post("/reservation/", json=payload)
+
+    group_id = response_reservation.json()[0]["group_id"]
+
+    response = await client.post(f"/reservation/{group_id}/expire")
 
 
-
+    assert response.status_code == 200

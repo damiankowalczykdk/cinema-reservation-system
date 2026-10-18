@@ -10,7 +10,7 @@ from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, AsyncEngine, async_sessionmaker
 from testcontainers.community.postgres import PostgresContainer
 
-from api.dependencies import get_stripe_client, get_cinema_client
+from api.dependencies import get_stripe_client, get_cinema_client, get_temporal_client
 from core.database import Base, get_db
 from main import app
 
@@ -118,8 +118,14 @@ async def fake_cinema_client_unavailable():
     mock.request.side_effect = HTTPException(status_code=503)
     return mock
 
+@pytest.fixture
+async def mock_temporal_client() -> AsyncMock:
+    mock = AsyncMock()
+    mock.get_workflow_handle = MagicMock(return_value=AsyncMock())
+    return mock
+
 @pytest_asyncio.fixture
-async def client(db_session, fake_cinema_client, fake_stripe_client):
+async def client(db_session, fake_cinema_client, fake_stripe_client, mock_temporal_client):
     async def override_get_db():
         yield db_session
 
@@ -128,6 +134,7 @@ async def client(db_session, fake_cinema_client, fake_stripe_client):
 
     app.dependency_overrides[get_stripe_client] = lambda: fake_stripe_client
     app.dependency_overrides[get_cinema_client] = lambda: fake_cinema_client
+    app.dependency_overrides[get_temporal_client] = lambda: mock_temporal_client
 
 
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:

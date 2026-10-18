@@ -90,12 +90,17 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      temporal:
+        condition: service_started
+
     environment:
       POSTGRES_PAYMENT_USER: ${POSTGRES_PAYMENT_USER}
       POSTGRES_PAYMENT_PASSWORD: ${POSTGRES_PAYMENT_PASSWORD}
       POSTGRES_PAYMENT_HOST: ${POSTGRES_PAYMENT_HOST}
       POSTGRES_PAYMENT_PORT: ${POSTGRES_PAYMENT_PORT}
       POSTGRES_PAYMENT_DB: ${POSTGRES_PAYMENT_DB}
+
+      TEMPORAL_ADDRESS: ${TEMPORAL_ADDRESS}
 
     volumes:
       - ./apps/payment-service:/app
@@ -138,20 +143,6 @@ services:
     networks:
       - backend
 
-  reservation_expirer:
-    image: curlimages/curl:latest
-    restart: always
-    depends_on:
-      - cinema-service
-    entrypoint: ["/bin/sh", "-c"]
-    command:
-      - |
-        while true; do
-          curl -fsS -X POST http://cinema-service:8001/reservation/expire-stale || echo "expire-stale failed"
-          sleep 60
-        done
-    networks:
-      - backend
 
   temporal:
     image: temporalio/temporal

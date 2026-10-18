@@ -4,6 +4,8 @@ import stripe
 from fastapi import HTTPException
 from unittest.mock import AsyncMock, MagicMock
 from sqlalchemy.exc import IntegrityError
+from temporalio.service import RPCError, RPCStatusCode
+
 from core.config import settings
 from core.exceptions import ConflictException
 from domain.model.payment import Payment, Status
@@ -16,59 +18,66 @@ def mock_repository() -> AsyncMock:
     return AsyncMock()
 
 @pytest.fixture
-def payment_service(fake_cinema_client, fake_stripe_client, mock_repository):
+def payment_service(fake_cinema_client, fake_stripe_client, mock_repository, mock_temporal_client):
     return PaymentService(
         repository=mock_repository,
         client=fake_stripe_client,
-        cinema_client=fake_cinema_client
+        cinema_client=fake_cinema_client,
+        temporal_client=mock_temporal_client
     )
 
 @pytest.fixture
-def payment_service_stripe_error(fake_cinema_client, fake_stripe_client_stripe_error, mock_repository):
+def payment_service_stripe_error(fake_cinema_client, fake_stripe_client_stripe_error, mock_repository, mock_temporal_client):
     return PaymentService(
         repository=mock_repository,
         client=fake_stripe_client_stripe_error,
-        cinema_client=fake_cinema_client
+        cinema_client=fake_cinema_client,
+        temporal_client=mock_temporal_client
     )
 
 @pytest.fixture
-def payment_service_provider_error(fake_cinema_client, fake_stripe_client_provider_error, mock_repository):
+def payment_service_provider_error(fake_cinema_client, fake_stripe_client_provider_error, mock_repository, mock_temporal_client):
     return PaymentService(
         repository=mock_repository,
         client=fake_stripe_client_provider_error,
-        cinema_client=fake_cinema_client
+        cinema_client=fake_cinema_client,
+        temporal_client=mock_temporal_client
     )
 
 @pytest.fixture
-def payment_service_stripe_expired(fake_cinema_client, fake_stripe_client_expired, mock_repository):
+def payment_service_stripe_expired(fake_cinema_client, fake_stripe_client_expired, mock_repository, mock_temporal_client):
     return PaymentService(
         repository=mock_repository,
         client=fake_stripe_client_expired,
-        cinema_client=fake_cinema_client
+        cinema_client=fake_cinema_client,
+        temporal_client=mock_temporal_client
     )
 
 @pytest.fixture
-def payment_service_cinema_conflict(fake_cinema_client_conflict, fake_stripe_client, mock_repository):
+def payment_service_cinema_conflict(fake_cinema_client_conflict, fake_stripe_client, mock_repository, mock_temporal_client):
     return PaymentService(
         repository=mock_repository,
         client=fake_stripe_client,
-        cinema_client=fake_cinema_client_conflict
+        cinema_client=fake_cinema_client_conflict,
+        temporal_client=mock_temporal_client
     )
 
 @pytest.fixture
-def payment_service_cinema_unavailable(fake_cinema_client_unavailable, fake_stripe_client, mock_repository):
+def payment_service_cinema_unavailable(fake_cinema_client_unavailable, fake_stripe_client, mock_repository, mock_temporal_client):
     return PaymentService(
         repository=mock_repository,
         client=fake_stripe_client,
-        cinema_client=fake_cinema_client_unavailable
+        cinema_client=fake_cinema_client_unavailable,
+        temporal_client=mock_temporal_client
     )
 
 @pytest.fixture
-def payment_service_cinema_expired_time(fake_cinema_client_expire_time, fake_stripe_client, mock_repository):
+def payment_service_cinema_expired_time(fake_cinema_client_expire_time, fake_stripe_client, mock_repository, mock_temporal_client):
     return PaymentService(
         repository=mock_repository,
         client=fake_stripe_client,
-        cinema_client=fake_cinema_client_expire_time
+        cinema_client=fake_cinema_client_expire_time,
+        temporal_client=mock_temporal_client
     )
 
 async def test_create_check_session_if_hold_expires_at_less_stripe_session(payment_service_cinema_expired_time: PaymentService, mock_repository) -> None:
@@ -240,6 +249,22 @@ async def test_fulfill_success(payment_service: PaymentService, mock_repository)
 
     mock_repository.update.assert_called_once()
 
+async def test_fulfill_if_workflow_not_running(payment_service: PaymentService, mock_repository, mock_temporal_client: AsyncMock) -> None:
+    payment = Payment(
+        group_id=1,
+        user_id="test123user",
+        amount=100,
+        currency="USD",
+        status=Status.PENDING,
+        stripe_session_id="102"
+    )
+
+    mock_repository.get_by_stripe_session_id = AsyncMock(return_value=payment)
+    mock_temporal_client.get_workflow_handle.side_effect = RPCError("workflow not running", RPCStatusCode.NOT_FOUND, b"")
+
+    await payment_service.fulfill(stripe_session_id="102", event_type="checkout.session.completed", payment_status="paid", group_id=1)
+
+    mock_repository.update.assert_called_once()
 
 async def test_fulfill_reservation_cancelled_refunds_payment(payment_service_cinema_conflict: PaymentService, mock_repository) -> None:
     payment = Payment(

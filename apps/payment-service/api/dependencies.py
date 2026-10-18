@@ -3,6 +3,8 @@ from typing import Annotated
 import httpx
 from fastapi import Depends, Request, Header
 from sqlalchemy.ext.asyncio import AsyncSession
+from temporalio.client import Client as TClient
+
 from core.config import Settings
 from core.database import get_db
 from core.http_client import ServiceRequestClient
@@ -15,6 +17,11 @@ def get_httpx_client(request: Request) -> httpx.AsyncClient:
 
 HttpClient = Annotated[httpx.AsyncClient, Depends(get_httpx_client)]
 
+# TEMPORAL
+def get_temporal_client(request: Request) -> TClient:
+    return request.app.state.temporal_client
+
+TemporalClient = Annotated[TClient, Depends(get_temporal_client)]
 
 # CINEMA-SERVICE
 @lru_cache
@@ -43,11 +50,13 @@ async def get_stripe_client(request: Request) -> StripeClient:
 Client = Annotated[StripeClient, Depends(get_stripe_client)]
 
 
-async def get_payment_service(repository: Repository, client: Client, cinema_client: CinemaServiceClient) -> PaymentService:
-    return PaymentService(repository, client, cinema_client)
+async def get_payment_service(
+        repository: Repository,
+        client: Client,
+        cinema_client: CinemaServiceClient, temporal_client: TemporalClient) -> PaymentService:
+    return PaymentService(repository, client, cinema_client, temporal_client)
 
 Service = Annotated[PaymentService, Depends(get_payment_service)]
-
 
 
 

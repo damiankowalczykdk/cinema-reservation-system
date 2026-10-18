@@ -3,6 +3,7 @@ from decimal import Decimal
 from unittest.mock import AsyncMock
 
 import pytest
+from temporalio.service import RPCError, RPCStatusCode
 
 from core.exceptions import NotFoundException, ValidationException, ConflictException, UnauthorizedException
 from domain.models.hall import Hall
@@ -24,13 +25,15 @@ def mock_repo_hall() -> AsyncMock:
 def mock_repo_screening() -> AsyncMock:
     return AsyncMock()
 
+
 @pytest.fixture
 def reservation_service(
         mock_repo_reservation: AsyncMock,
         mock_repo_hall: AsyncMock,
-        mock_repo_screening: AsyncMock
+        mock_repo_screening: AsyncMock,
+        mock_temporal_client: AsyncMock
 ) -> ReservationService:
-    return ReservationService(mock_repo_reservation, mock_repo_hall, mock_repo_screening)
+    return ReservationService(mock_repo_reservation, mock_repo_hall, mock_repo_screening, mock_temporal_client)
 
 
 async def test_create_reservation_success(
@@ -315,7 +318,8 @@ async def test_get_user_reservations_success(
         row=1,
         seat=1,
         status=Status.PENDING,
-        price_paid=Decimal("19.99")
+        price_paid=Decimal("19.99"),
+        expires_at=datetime.now(timezone.utc) + timedelta(hours=1)
     )
 
     mock_repo_reservation.get_by_user_id = AsyncMock(return_value=[reservation])
@@ -337,7 +341,8 @@ async def test_get_user_reservations_if_unauthorized(
         row=1,
         seat=1,
         status=Status.PENDING,
-        price_paid=Decimal("19.99")
+        price_paid=Decimal("19.99"),
+        expires_at=datetime.now(timezone.utc) + timedelta(hours=1)
     )
 
     mock_repo_reservation.get_user_by_id = AsyncMock(return_value=[reservation])
@@ -368,7 +373,8 @@ async def test_cancel_reservation_success(
         row=1,
         seat=1,
         status=Status.PENDING,
-        price_paid=Decimal("19.99")
+        price_paid=Decimal("19.99"),
+        expires_at=datetime.now(timezone.utc) + timedelta(hours=1)
     )
     screening = Screening(
         id=1,
@@ -388,6 +394,39 @@ async def test_cancel_reservation_success(
 
     assert result[0].status == Status.CANCELLED
 
+async def test_cancel_reservation_if_workflow_not_running(
+        reservation_service: ReservationService,
+        mock_repo_reservation: AsyncMock,
+        mock_repo_screening: AsyncMock,
+        mock_temporal_client: AsyncMock
+) -> None:
+    reservation = ReservationRead(
+        id=1,
+        screening_id=1,
+        group_id=1,
+        user_id="test123",
+        row=1,
+        seat=1,
+        status=Status.PENDING,
+        price_paid=Decimal("19.99"),
+        expires_at=datetime.now(timezone.utc) + timedelta(hours=1)
+    )
+    screening = Screening(
+        id=1,
+        movie_id=1,
+        hall_id=1,
+        start_time=datetime.now(timezone.utc) + timedelta(hours=1),
+        price=Decimal("19.99")
+    )
+
+    mock_repo_screening.get_by_id = AsyncMock(return_value=screening)
+
+    mock_repo_reservation.get_by_group_id_for_update = AsyncMock(return_value=[reservation])
+
+    mock_temporal_client.get_workflow_handle.side_effect = RPCError("workflow not found", RPCStatusCode.NOT_FOUND, b"")
+
+    await reservation_service.cancel_reservation(1, "test123", False)
+
 async def test_cancel_reservation_screening_already_started_if_is_admin(
         reservation_service: ReservationService,
         mock_repo_reservation: AsyncMock,
@@ -401,7 +440,8 @@ async def test_cancel_reservation_screening_already_started_if_is_admin(
         row=1,
         seat=1,
         status=Status.PENDING,
-        price_paid=Decimal("19.99")
+        price_paid=Decimal("19.99"),
+        expires_at=datetime.now(timezone.utc) + timedelta(hours=1)
     )
     screening = Screening(
         id=1,
@@ -434,7 +474,8 @@ async def test_cancel_reservation_screening_already_started_and_not_is_admin(
         row=1,
         seat=1,
         status=Status.PENDING,
-        price_paid=Decimal("19.99")
+        price_paid=Decimal("19.99"),
+        expires_at=datetime.now(timezone.utc) + timedelta(hours=1)
     )
     screening = Screening(
         id=1,
@@ -464,7 +505,8 @@ async def test_cancel_reservation_screening_not_found(
         row=1,
         seat=1,
         status=Status.PENDING,
-        price_paid=Decimal("19.99")
+        price_paid=Decimal("19.99"),
+        expires_at=datetime.now(timezone.utc) + timedelta(hours=1)
     )
 
     mock_repo_screening.get_by_id = AsyncMock(return_value=None)
@@ -498,7 +540,8 @@ async def test_cancel_reservation_not_allowed(
         row=1,
         seat=1,
         status=Status.PENDING,
-        price_paid=Decimal("19.99")
+        price_paid=Decimal("19.99"),
+        expires_at=datetime.now(timezone.utc) + timedelta(hours=1)
     )
 
     mock_repo_reservation.get_by_id = AsyncMock(return_value=reservation)
@@ -519,7 +562,8 @@ async def test_delete_by_id_success(
         row=1,
         seat=1,
         status=Status.PENDING,
-        price_paid=Decimal("19.99")
+        price_paid=Decimal("19.99"),
+        expires_at=datetime.now(timezone.utc) + timedelta(hours=1)
     )
 
     mock_repo_reservation.get_by_group_id = AsyncMock(return_value=[reservation])
@@ -617,7 +661,8 @@ async def test_set_confirm_reservation_already_canceled(
         row=1,
         seat=1,
         status=Status.CANCELLED,
-        price_paid=Decimal("19.99")
+        price_paid=Decimal("19.99"),
+        expires_at=datetime.now(timezone.utc) + timedelta(hours=1)
     )
 
     mock_repo_reservation.get_by_group_id_for_update = AsyncMock(return_value=[reservation])
@@ -655,7 +700,8 @@ async def test_extend_reservation_already_confirmed(reservation_service: Reserva
         row=1,
         seat=1,
         status=Status.CONFIRMED,
-        price_paid=Decimal("19.99")
+        price_paid=Decimal("19.99"),
+        expires_at=datetime.now(timezone.utc) + timedelta(hours=1)
     )
 
     mock_repo_reservation.get_by_group_id_for_update = AsyncMock(return_value=[reservation])
@@ -674,7 +720,8 @@ async def test_extend_reservation_already_cancelled(reservation_service: Reserva
         row=1,
         seat=1,
         status=Status.CANCELLED,
-        price_paid=Decimal("19.99")
+        price_paid=Decimal("19.99"),
+        expires_at = datetime.now(timezone.utc) + timedelta(hours=1)
     )
 
     mock_repo_reservation.get_by_group_id_for_update = AsyncMock(return_value=[reservation])
@@ -704,3 +751,51 @@ async def test_extend_reservation_expired(reservation_service: ReservationServic
         await reservation_service.extend(2)
 
     mock_repo_reservation.add_all.assert_not_called()
+
+async def test_extend_reservation_if_workflow_not_running(
+        reservation_service: ReservationService,
+        mock_repo_reservation: AsyncMock,
+        mock_temporal_client: AsyncMock
+) -> None:
+    reservation = Reservation(
+        id=1,
+        screening_id=1,
+        group_id=1,
+        user_id="test123",
+        row=1,
+        seat=1,
+        status=Status.PENDING,
+        price_paid=Decimal("19.99"),
+        expires_at=datetime.now(timezone.utc) + timedelta(minutes=15),
+        created_at=datetime.now(timezone.utc)
+    )
+
+    mock_repo_reservation.get_by_group_id_for_update = AsyncMock(return_value=[reservation])
+    mock_temporal_client.get_workflow_handle.side_effect = RPCError("workflow not found", RPCStatusCode.NOT_FOUND,b"")
+
+    res = await reservation_service.extend(1)
+
+    assert res == reservation.expires_at
+
+    mock_repo_reservation.add_all.assert_called_once()
+
+
+async def test_expire_group_if_time_expired(reservation_service: ReservationService, mock_repo_reservation: AsyncMock) -> None:
+    reservation = Reservation(
+        id=1,
+        screening_id=1,
+        group_id=1,
+        user_id="test123",
+        row=1,
+        seat=1,
+        status=Status.PENDING,
+        price_paid=Decimal("19.99"),
+        expires_at=datetime.now(timezone.utc) - timedelta(minutes=15),
+        created_at=datetime.now(timezone.utc)
+    )
+
+    mock_repo_reservation.get_by_group_id_for_update = AsyncMock(return_value=[reservation])
+
+    await reservation_service.expire_group(1)
+
+    assert reservation.status == Status.CANCELLED

@@ -1,9 +1,10 @@
+import logging
 from datetime import timedelta, datetime, timezone
 from decimal import Decimal
 from typing import Sequence
 
 from temporalio.client import Client
-
+from temporalio.service import RPCError
 from core.config import database_settings
 from core.exceptions import NotFoundException, ValidationException, ConflictException, UnauthorizedException
 from domain.models.reservation import Reservation, Status
@@ -12,6 +13,7 @@ from repositories.hall import HallRepository
 from repositories.reservation import ReservationRepository
 from repositories.screening import ScreeningRepository
 
+logger = logging.getLogger(__name__)
 
 class ReservationService:
     def __init__(
@@ -123,10 +125,15 @@ class ReservationService:
             reservation.expires_at = new_expires_at
 
         await self.reservation_repository.add_all(list(reservations))
-        return reservations[0].expires_at
 
-    async def expire_stale(self) -> None:
-        await self.reservation_repository.expire_all_stale()
+        try:
+            await self.temporal_client.get_workflow_handle(
+                f"reservations-{group_id}"
+            ).signal("extended", reservations[0].expires_at.isoformat())
+        except RPCError:
+            logger.warning(f"Workflow for group {group_id} not running, skipping extend signal”")
+
+        return reservations[0].expires_at
 
     async def expire_group(self, group_id: int) -> list[Reservation]:
         reservations = await self._check_group(group_id, lock=True)
@@ -165,7 +172,15 @@ class ReservationService:
             if r.status != Status.CANCELLED:
                 r.status = Status.CANCELLED
 
-        return await self.reservation_repository.add_all(list(reservations))
+        res = await self.reservation_repository.add_all(list(reservations))
+
+        try:
+            await self.temporal_client.get_workflow_handle(
+                f"reservations-{group_id}").cancel()
+        except RPCError:
+            logger.warning(f"Workflow for group {group_id} not running, skipping cancel")
+
+        return res
 
 
     async def delete_reservation_group(self, group_id: int) -> None:

@@ -21,7 +21,7 @@ from services.screening import ScreeningService
 
 #TEMPORAL
 def get_temporal_client(request: Request) -> Client:
-    return request.app.state.temporal_client
+    return request.app.state.temporal_client #pragma: no cover
 
 TemporalClient = Annotated[Client, Depends(get_temporal_client)]
 

@@ -5,6 +5,10 @@ from fastapi import Response, Request
 from fastapi.exceptions import HTTPException
 from sqlalchemy.exc import IntegrityError
 from datetime import datetime, timezone, timedelta
+
+from temporalio.client import Client
+from temporalio.service import RPCError
+
 from core.config import settings
 from core.exceptions import ConflictException
 from core.http_client import ServiceRequestClient
@@ -19,11 +23,13 @@ class PaymentService:
             self,
             repository: PaymentRepository,
             client: stripe.StripeClient,
-            cinema_client: ServiceRequestClient
+            cinema_client: ServiceRequestClient,
+            temporal_client: Client
     ) -> None:
         self.repository = repository
         self.client = client
         self.cinema_client = cinema_client
+        self.temporal_client = temporal_client
 
 
 
@@ -139,7 +145,6 @@ class PaymentService:
                     "POST",
                 f"/reservation/{group_id}/confirm")
 
-
             except HTTPException as e:
                 if e.status_code == 409:
                     logger.warning(f"Reservation {group_id} cancelled before payment confirmation, refunding")
@@ -147,6 +152,14 @@ class PaymentService:
                     await self.repository.update(payment)
                     return None
                 raise
+
+            try:
+                await self.temporal_client.get_workflow_handle(
+                    f"reservations-{group_id}"
+                ).signal("paid")
+
+            except RPCError:
+                logger.warning(f"Workflow for group {group_id} not running, skipping paid signal")
 
         if event_type in ("checkout.session.expired", "checkout.session.async_payment_failed"):
             payment.status = Status.FAILED

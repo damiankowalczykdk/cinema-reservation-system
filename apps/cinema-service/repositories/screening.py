@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Sequence
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -43,8 +43,8 @@ class ScreeningRepository(GenericRepository[Screening]):
             genre: Genre | None
     ) -> Sequence[RowMapping]:
 
-        # conditions = [Screening.start_time > datetime.now(timezone.utc)]
-        conditions = []
+        conditions = [Screening.start_time > datetime.now(timezone.utc)]
+
 
         if movie_id is not None:
             conditions.append(Screening.movie_id == movie_id)

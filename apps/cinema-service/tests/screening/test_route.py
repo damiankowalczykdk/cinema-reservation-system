@@ -1,3 +1,5 @@
+from datetime import datetime, timezone, timedelta
+
 from httpx import AsyncClient
 
 
@@ -106,7 +108,7 @@ async def test_search_screening(client: AsyncClient) -> None:
     payload_screening = {
         "movie_id": movie_id,
         "hall_id": hall_id,
-        "start_time": "2026-08-25T18:30:00Z",
+        "start_time": (datetime.now(tz=timezone.utc) + timedelta(hours=2)).isoformat(),
         "price": 19.99
     }
 
@@ -114,7 +116,7 @@ async def test_search_screening(client: AsyncClient) -> None:
 
     response = await client.get(f"/screening/search",
         params={
-            "movie_id": movie_id, "cinema_id": cinema_id, "date_from": "2026-08-25T18:00:00Z", "date_to": "2026-08-25T18:30:00Z",
+            "movie_id": movie_id, "cinema_id": cinema_id, "date_from": datetime.now(tz=timezone.utc).isoformat(), "date_to": (datetime.now(tz=timezone.utc) + timedelta(days=1)).isoformat(),
             "city": "Test City", "genre": "crime"
         })
 
@@ -125,3 +127,4 @@ async def test_search_screening(client: AsyncClient) -> None:
     assert len(data) == 1
     assert data[0]["movie_title"] == "Movie"
     assert data[0]["movie_id"] == movie_id
+

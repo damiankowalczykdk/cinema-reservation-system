@@ -22,6 +22,8 @@ class Settings(BaseSettings):
     stripe_min_session_minutes: int = 31
     buffer: int = 10
 
+    temporal_address: str
+
     @property
     def POSTGRES_URI(self) -> str:
         return f"postgresql+asyncpg://{self.postgres_payment_user}:{self.postgres_payment_password}@{self.postgres_payment_host}:{self.postgres_payment_port}/{self.postgres_payment_db}"
