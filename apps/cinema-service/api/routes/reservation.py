@@ -1,19 +1,29 @@
 from typing import Sequence
 from fastapi import APIRouter, status
-from api.dependencies import ReservationServiceDep, CurrentUserId, IsAdmin
+from api.dependencies import ReservationServiceDep, CurrentUserId, IsAdmin, CurrentUserEmail
 from domain.models.reservation import Reservation
-from domain.schemas.reservation import ReservationRead, CreateReservation, OccupiedSeatsRead, GroupTotalRead, ExtendRead
+from domain.schemas.reservation import ReservationRead, CreateReservation, OccupiedSeatsRead, GroupTotalRead, \
+    ExtendRead, ReservationSummaryRead
 
 router = APIRouter(prefix="/reservation", tags=["reservation"])
 
 @router.post("/", response_model=list[ReservationRead], status_code=status.HTTP_201_CREATED, summary="Create a new reservation")
-async def create_reservation(payload: CreateReservation, service: ReservationServiceDep, user_id: CurrentUserId) -> Sequence[Reservation]:
-    return await service.create_reservation(payload, user_id)
+async def create_reservation(
+        payload: CreateReservation,
+        service: ReservationServiceDep,
+        user_id: CurrentUserId,
+        user_email: CurrentUserEmail
+) -> Sequence[Reservation]:
+    return await service.create_reservation(payload, user_id, user_email)
 
 
 @router.get("/{group_id}", response_model=list[ReservationRead], status_code=status.HTTP_200_OK, summary="Get reservations")
 async def get_reservations_by_group_id(group_id: int, service: ReservationServiceDep) -> Sequence[Reservation]:
     return await service.get_reservations_by_group_id(group_id)
+
+@router.get("/{group_id}/summary", response_model=ReservationSummaryRead, status_code=status.HTTP_200_OK, summary="Get summary reservations")
+async def get_reservations_summary(group_id: int, service: ReservationServiceDep) -> ReservationSummaryRead:
+    return await service.get_reservation_summary(group_id)
 
 @router.post("/{group_id}/extend",response_model=ExtendRead, status_code=status.HTTP_200_OK, summary="Extend reservations")
 async def extend(group_id: int, service: ReservationServiceDep) -> ExtendRead:

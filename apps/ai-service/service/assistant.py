@@ -30,13 +30,24 @@ class AssistantService:
 
         return [ShowtimeRead.model_validate(s) for s in responses]
 
-    async def create_reservation(self, create_reservation: CreateReservation, user_id: str | None = None) -> list[ReservationRead]:
+    async def create_reservation(
+            self,
+            create_reservation: CreateReservation,
+            user_id: str | None = None,
+            user_email: str | None = None
+    ) -> list[ReservationRead]:
+
+        headers: dict[str, str] | None = None
+        if user_id:
+            headers = {"X-User-Id": user_id}
+            if user_email:
+                headers["X-User-Email"] = user_email
 
         responses: list[dict[str, object]] = await self.cinema_client.request(
             "POST",
             "/reservation/",
             json=create_reservation.model_dump(),
-            headers={"X-User-Id": user_id} if user_id is not None else None,
+            headers=headers,
         )
 
         return [ReservationRead.model_validate(r) for r in responses]

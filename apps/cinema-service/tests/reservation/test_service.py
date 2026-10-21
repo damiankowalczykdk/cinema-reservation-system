@@ -799,3 +799,11 @@ async def test_expire_group_if_time_expired(reservation_service: ReservationServ
     await reservation_service.expire_group(1)
 
     assert reservation.status == Status.CANCELLED
+
+
+async def test_get_reservation_summary_if_not_reservation(reservation_service: ReservationService, mock_repo_reservation: AsyncMock) -> None:
+    mock_repo_reservation.get_reservation_summary.return_value = None
+
+    with pytest.raises(NotFoundException, match="Reservation not found"):
+        await reservation_service.get_reservation_summary(1)
+

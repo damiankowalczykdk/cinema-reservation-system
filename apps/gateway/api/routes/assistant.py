@@ -18,10 +18,16 @@ async def chat(
         current_user: TokenPayload | None = Depends(get_current_user)
 ) -> AssistantResponse:
 
+    headers: dict[str, str] | None = None
+    if current_user:
+        headers = {"X-User-Id": current_user.sub}
+        if current_user.email:
+            headers["X-User-Email"] = current_user.email
+
     return await ai_client.request(
         "POST",
         f"/assistant",
         json=payload.model_dump(),
         timeout=settings.http_timeout_llm,
-        headers={"X-User-Id": current_user.sub} if current_user else None,
+        headers=headers
     )

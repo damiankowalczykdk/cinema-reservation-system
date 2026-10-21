@@ -6,7 +6,7 @@ from domain.schemas.assistant import AssistantRequest
 
 
 @respx.mock
-async def test_chat(client: AsyncClient, test_settings: Auth0Settings) -> None:
+async def test_chat(client: AsyncClient, user_client: AsyncClient, test_settings: Auth0Settings) -> None:
     payload = AssistantRequest(
         message="Test Message"
     )
@@ -15,9 +15,9 @@ async def test_chat(client: AsyncClient, test_settings: Auth0Settings) -> None:
         return_value=Response(200, json={
             "answer": "Test Answer",
             "conversation_id": "resp_1"
-        })
+        }, headers={"X-User-Email": "test@example.com"})
     )
 
-    response = await client.post("/assistants", json=payload.model_dump(mode="json"))
+    response = await user_client.post("/assistants", json=payload.model_dump(mode="json"))
 
     assert response.status_code == 200

@@ -4,7 +4,8 @@ from temporalio import workflow
 from temporalio.common import RetryPolicy
 
 with workflow.unsafe.imports_passed_through():
-    from activities import ReservationActivities
+    from activities import ReservationActivities, EmailActivities
+
 
 @workflow.defn
 class ReservationWorkflow:
@@ -14,18 +15,19 @@ class ReservationWorkflow:
         self.is_extended = False
 
     @workflow.run
-    async def run(self, group_id: int, hold_minutes: float) -> None:
+    async def run(self, group_id: int, hold_minutes: float, email: str | None) -> None:
         workflow.logger.info("Reservation workflow started for group %s hold %s min", group_id, hold_minutes)
 
         if self.expires_at is None:
             self.expires_at = workflow.now() + timedelta(minutes=hold_minutes)
+
 
         while not self.is_paid:
             timeout = self.expires_at - workflow.now()
             if timeout <= timedelta(0):
                 await workflow.execute_activity_method(
                     ReservationActivities.expire_reservation,
-                    group_id,
+                    args=[group_id],
                     start_to_close_timeout=timedelta(seconds=10),
                     retry_policy=RetryPolicy(maximum_attempts=3)
                 )
@@ -37,6 +39,14 @@ class ReservationWorkflow:
                 await workflow.wait_condition(lambda: self.is_paid or self.is_extended, timeout=timeout)
             except asyncio.TimeoutError:
                 pass
+
+        if email:
+            await workflow.execute_activity_method(
+                EmailActivities.send_tickets,
+                args=[group_id, email],
+                start_to_close_timeout=timedelta(seconds=10),
+                retry_policy=RetryPolicy(maximum_attempts=3)
+            )
 
 
     @workflow.signal

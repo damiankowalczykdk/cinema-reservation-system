@@ -73,9 +73,15 @@ services:
     depends_on:
       - temporal
       - cinema-service
+      - mailpit
     environment:
       CINEMA_SERVICE_URL: ${CINEMA_SERVICE_URL}
+      FRONTEND_URL: ${FRONTEND_URL}
       TEMPORAL_ADDRESS: ${TEMPORAL_ADDRESS}
+      SMTP_HOST: ${SMTP_HOST}
+      SMTP_PORT: ${SMTP_PORT}
+      SMTP_SENDER: ${SMTP_SENDER}
+
     volumes:
       - ./apps/worker-service:/app
 
@@ -131,6 +137,7 @@ services:
 
   stripe-cli:
     image: stripe/stripe-cli:latest
+    restart: always
     command: listen --api-key ${STRIPE_SECRET_KEY} --all-snapshot --forward-to payment-service:8002/payment/webhook
     depends_on:
       - payment-service
@@ -150,6 +157,16 @@ services:
     command: ["server", "start-dev", "--ip", "0.0.0.0"]
     ports:
       - "8233:8233"
+      - "7233:7233"
+    networks:
+      - backend
+
+  mailpit:
+    image: axllent/mailpit
+    restart: always
+    ports:
+      - "8025:8025"
+      - "1025:1025"
     networks:
       - backend
 

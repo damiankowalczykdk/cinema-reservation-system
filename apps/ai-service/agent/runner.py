@@ -12,12 +12,18 @@ from agent.tools import TOOLS
 
 import json
 
-async def execute_tool(name: str, arguments: dict, ai_service: AssistantService, user_id: str | None = None):
+async def execute_tool(
+        name: str,
+        arguments: dict,
+        ai_service: AssistantService,
+        user_id: str | None = None,
+        user_email: str | None = None
+):
     if name == "search_showtimes":
         return await ai_service.search_showtimes(**arguments)
 
     if name == "create_reservation":
-        return await ai_service.create_reservation(CreateReservation(**arguments), user_id=user_id)
+        return await ai_service.create_reservation(CreateReservation(**arguments), user_id=user_id, user_email=user_email)
 
     if name == "get_seats_map":
         return await ai_service.get_seats_map(**arguments)
@@ -31,7 +37,8 @@ async def run_agent(
         openai_client: AsyncOpenAI,
         conversation_id: str,
         history: ResponseInputParam,
-        user_id: str | None = None
+        user_id: str | None = None,
+        user_email: str | None = None,
 ) -> tuple[AssistantResponse, ResponseInputParam]:
 
     instructions = build_instructions(user_id is not None)
@@ -72,7 +79,7 @@ async def run_agent(
         for call in calls:
             try:
                 arguments = json.loads(call.arguments)
-                result = await execute_tool(call.name, arguments, ai_service, user_id)
+                result = await execute_tool(call.name, arguments, ai_service, user_id, user_email)
                 if call.name == "create_reservation":
                     reservation = ReservationInfo(group_id=result[0].group_id, guest_email=result[0].guest_email)
                 if isinstance(result, list):

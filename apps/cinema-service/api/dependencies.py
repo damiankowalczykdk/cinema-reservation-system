@@ -118,3 +118,8 @@ def get_is_admin(is_admin: bool = Header(default=False, alias="X-Is-Admin")) -> 
 
 IsAdmin = Annotated[bool, Depends(get_is_admin)]
 
+def get_is_email(x_user_email: str | None = Header(default=None, alias="X-User-Email")) -> str | None:
+    return x_user_email
+
+CurrentUserEmail = Annotated[str | None, Depends(get_is_email)]
+

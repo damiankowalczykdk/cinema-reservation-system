@@ -41,7 +41,7 @@ async def admin_client(test_settings: Auth0Settings) -> AsyncGenerator[AsyncClie
 
 @pytest_asyncio.fixture
 async def user_client(test_settings: Auth0Settings) -> AsyncGenerator[AsyncClient, None]:
-    app.dependency_overrides[get_current_user] = lambda: TokenPayload(sub="test123user", roles=["user"]) # type: ignore
+    app.dependency_overrides[get_current_user] = lambda: TokenPayload(sub="test123user", roles=["user"], email="test@example.com") # type: ignore
     app.state.http_client = httpx.AsyncClient()
 
     async with AsyncClient(transport=ASGITransport(app=app,  raise_app_exceptions=False), base_url="http://test") as ac:

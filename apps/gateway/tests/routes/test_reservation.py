@@ -24,10 +24,10 @@ async def test_create_reservation(client: AsyncClient, user_client: AsyncClient,
             "seat": 1,
             "status": "pending",
             "price_paid": 100
-        }])
+        }], headers={"X-User-Email": "test@example.com"})
     )
 
-    response = await user_client.post("/reservations/", json=payload.model_dump(mode="json"))
+    response = await user_client.post("/reservations/", json=payload.model_dump(mode="json"), headers={"X-User-Email": "test@example.com"})
     assert response.status_code == 201
 
     data = response.json()[0]

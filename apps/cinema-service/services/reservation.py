@@ -3,12 +3,13 @@ from datetime import timedelta, datetime, timezone
 from decimal import Decimal
 from typing import Sequence
 
+from sqlalchemy import RowMapping
 from temporalio.client import Client
 from temporalio.service import RPCError
 from core.config import database_settings
 from core.exceptions import NotFoundException, ValidationException, ConflictException, UnauthorizedException
 from domain.models.reservation import Reservation, Status
-from domain.schemas.reservation import CreateReservation, OccupiedSeatsRead
+from domain.schemas.reservation import CreateReservation, OccupiedSeatsRead, SeatInput, ReservationSummaryRead
 from repositories.hall import HallRepository
 from repositories.reservation import ReservationRepository
 from repositories.screening import ScreeningRepository
@@ -28,7 +29,13 @@ class ReservationService:
         self.screening_repository = screening_repository
         self.temporal_client = temporal_client
 
-    async def create_reservation(self, create_reservation: CreateReservation, user_id: str | None = None) -> list[Reservation]:
+    async def create_reservation(
+            self,
+            create_reservation: CreateReservation,
+            user_id: str | None = None,
+            user_email: str | None = None
+    ) -> list[Reservation]:
+
         screening = await self.screening_repository.get_by_id(create_reservation.screening_id)
         if not screening:
             raise NotFoundException("Screening not found")
@@ -79,14 +86,35 @@ class ReservationService:
 
         reservations = await self.reservation_repository.add_all(reservations)
 
+        recipient_email = create_reservation.guest_email or user_email
+
         await self.temporal_client.start_workflow(
             "ReservationWorkflow",
             id=f"reservations-{group_id}",
-            args=[group_id, database_settings.hold_minutes],
+            args=[group_id, database_settings.hold_minutes, recipient_email],
             task_queue=database_settings.task_queue
         )
 
         return reservations
+
+    async def get_reservation_summary(self, group_id: int) :
+        reservation = await self.reservation_repository.get_reservation_summary(group_id)
+        if not reservation:
+            raise NotFoundException("Reservation not found")
+
+        res = reservation[0]
+        seats = [SeatInput(row=r["row"], seat=r["seat"]) for r in reservation]
+        total_price = sum(r["price_paid"] for r in reservation)
+
+        return ReservationSummaryRead(
+            group_id=res["group_id"],
+            movie_title=res["movie_title"],
+            city=res["city"],
+            start_time=res["start_time"],
+            hall_name=res["hall_name"],
+            seats=seats,
+            total_price=Decimal(total_price),
+        )
 
 
     async def get_reservations_by_group_id(self, group_id: int) -> Sequence[Reservation]:

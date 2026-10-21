@@ -1,11 +1,12 @@
 from collections.abc import AsyncIterator
+from email.message import EmailMessage
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 import pytest_asyncio
 from temporalio.testing import WorkflowEnvironment
 
-from activities import ReservationActivities
+from activities import ReservationActivities, EmailActivities
 
 
 @pytest.fixture
@@ -17,6 +18,11 @@ async def mock_temporal_client() -> AsyncMock:
 @pytest.fixture
 async def mock_reservation_activities(mock_temporal_client: AsyncMock) -> ReservationActivities:
     return ReservationActivities(mock_temporal_client)
+
+@pytest.fixture
+async def mock_email_activities(mock_temporal_client: AsyncMock) -> EmailActivities:
+    return EmailActivities(mock_temporal_client)
+
 
 @pytest_asyncio.fixture(scope="session")
 async def workflow_testing() -> AsyncIterator[WorkflowEnvironment]:

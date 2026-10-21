@@ -21,14 +21,20 @@ router = APIRouter(prefix="/reservations", tags=["reservations"])
 async def create_reservation(
         payload: CreateReservation,
         reservation_client: CinemaServiceClient,
-        current_user: TokenPayload | None = Depends(get_current_user)
+        current_user: TokenPayload | None = Depends(get_current_user),
 ) -> list[ReservationRead]:
+
+    headers: dict[str, str] | None = None
+    if current_user:
+        headers = {"X-User-Id": current_user.sub}
+        if current_user.email:
+            headers["X-User-Email"] = current_user.email
 
     return await reservation_client.request(
         "POST",
         f"/reservation/",
         json=payload.model_dump(mode="json"),
-        headers={"X-User-Id": current_user.sub} if current_user else None
+        headers=headers
     )
 @router.get(
     "/{group_id}",

@@ -47,3 +47,5 @@ def get_ai_service(cinema_client: AIClient) -> AssistantService:
 Service = Annotated[AssistantService, Depends(get_ai_service)]
 
 User = Annotated[str | None, Header(alias="X-User-Id")]
+
+UserEmail = Annotated[str | None, Header(alias="X-User-Email")]

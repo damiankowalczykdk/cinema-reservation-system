@@ -1,7 +1,7 @@
 from uuid import uuid4
 from fastapi import APIRouter
 from agent.runner import run_agent
-from api.dependencies import Service, User, OpenAIClient, ConversationRepo
+from api.dependencies import Service, User, OpenAIClient, ConversationRepo, UserEmail
 from domain.schemas.assistant import AssistantRequest, AssistantResponse
 
 router = APIRouter(prefix="/assistant", tags=["assistant ai"])
@@ -12,7 +12,8 @@ async def chat(
         ai_service: Service,
         openai_client: OpenAIClient,
         conversation_repository: ConversationRepo,
-        user_id: User = None
+        user_id: User = None,
+        user_email: UserEmail = None
 
 ) -> AssistantResponse:
     conversation_id = request.conversation_id or str(uuid4())
@@ -27,7 +28,8 @@ async def chat(
         openai_client=openai_client,
         user_id=user_id,
         conversation_id=conversation_id,
-        history=history
+        history=history,
+        user_email=user_email
     )
 
     await conversation_repository.save(conversation_id, user_id, items)

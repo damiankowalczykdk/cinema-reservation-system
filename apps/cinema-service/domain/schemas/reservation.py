@@ -47,3 +47,12 @@ class ReservationRead(BaseModel):
     status: Status
     price_paid: Decimal
     expires_at: datetime
+
+class ReservationSummaryRead(BaseModel):
+    group_id: int
+    movie_title: str
+    city: str
+    start_time: datetime
+    hall_name: str
+    seats: list[SeatInput]
+    total_price: Decimal

@@ -5,7 +5,7 @@ import httpx
 from temporalio.client import Client
 from temporalio.worker import Worker
 
-from activities import ReservationActivities
+from activities import ReservationActivities, EmailActivities
 from core.config import settings
 from workflows import ReservationWorkflow
 
@@ -16,6 +16,7 @@ async def main() -> None:
     async with httpx.AsyncClient() as http_client:
         
         activities = ReservationActivities(http_client)
+        email = EmailActivities(http_client)
 
         client = await Client.connect(
             settings.temporal_address
@@ -28,7 +29,9 @@ async def main() -> None:
                 ReservationWorkflow
             ],
             activities=[
-                activities.expire_reservation
+                activities.expire_reservation,
+                email.send_tickets
+
             ]
         )
     
