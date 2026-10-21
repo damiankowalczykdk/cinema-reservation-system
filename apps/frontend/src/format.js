@@ -5,7 +5,9 @@
 import { DEFAULT_LANGUAGE, translate } from './i18n/translations.js'
 
 const LOCALES = { en: 'en-GB', pl: 'pl-PL' }
-const CURRENCY = 'USD' // matches payment-service default_currency
+// Fallback only: screening responses carry their own `currency` (set in cinema-service config).
+// Reservation responses don't, so pages showing a booked total rely on this.
+const DEFAULT_CURRENCY = 'PLN'
 
 // Current UI language. LanguageProvider sets it before each re-render, so these helpers
 // stay plain functions instead of every caller threading a locale through.
@@ -21,9 +23,11 @@ function locale() {
 
 const priceFormatters = {}
 
-function formatPrice(value) {
-  priceFormatters[language] ??= new Intl.NumberFormat(locale(), { style: 'currency', currency: CURRENCY })
-  return priceFormatters[language].format(Number(value))
+function formatPrice(value, currency) {
+  const code = (currency || DEFAULT_CURRENCY).toUpperCase()
+  const key = `${language}:${code}`
+  priceFormatters[key] ??= new Intl.NumberFormat(locale(), { style: 'currency', currency: code })
+  return priceFormatters[key].format(Number(value))
 }
 
 function formatTime(iso) {

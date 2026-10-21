@@ -10,13 +10,13 @@ from domain.models.hall import Hall # noqa: F401
 from domain.models.movie import Movie # noqa: F401
 from domain.models.screening import Screening # noqa: F401
 from domain.models.reservation import Reservation # noqa: F401
-from core.config import database_settings
+from core.config import settings
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
 config = context.config
 
-config.set_main_option("sqlalchemy.url", database_settings.POSTGRES_URI)
+config.set_main_option("sqlalchemy.url", settings.POSTGRES_URI)
 # Interpret the config file for Python logging.
 # This line sets up loggers basically.
 if config.config_file_name is not None:

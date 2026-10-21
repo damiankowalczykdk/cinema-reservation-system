@@ -11,13 +11,13 @@ from api.routes.health import router as health_router
 from api.routes.movie import router as movie_router
 from api.routes.screening import router as screening_router
 from api.routes.reservation import router as reservation_router
-from core.config import database_settings
+from core.config import settings
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI): # pragma: no cover.
-    app.state.tmdb = httpx.AsyncClient(timeout=database_settings.http_timeout)
-    app.state.temporal_client = await Client.connect(database_settings.temporal_address)
+    app.state.tmdb = httpx.AsyncClient(timeout=settings.http_timeout)
+    app.state.temporal_client = await Client.connect(settings.temporal_address)
     yield
     await app.state.tmdb.aclose()
 

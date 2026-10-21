@@ -5,7 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from temporalio.client import Client
 
 from clients.tmdb import TMDBClient
-from core.config import database_settings
+from core.config import settings
 from core.database import get_db
 from repositories.cinema import CinemaRepository
 from repositories.hall import HallRepository
@@ -56,8 +56,8 @@ async def get_tmdb_client() -> AsyncIterator[TMDBClient]:
     async with AsyncClient(timeout=5.0) as client:
         yield TMDBClient(
             client=client,
-            tmdb_api_token=database_settings.tmdb_api_token,
-            tmdb_base_address=database_settings.tmdb_base_address
+            tmdb_api_token=settings.tmdb_api_token,
+            tmdb_base_address=settings.tmdb_base_address
         )
 TMDBClientDep = Annotated[TMDBClient, Depends(get_tmdb_client)]
 

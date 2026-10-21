@@ -95,7 +95,7 @@ async def test_cancel_reservation(client: AsyncClient, user_client: AsyncClient,
             "row": 1,
             "seat": 1,
             "status": "pending",
-            "price_paid": 100,
+            "price_paid": 100
 
         }])
     )
@@ -106,7 +106,8 @@ async def test_cancel_reservation(client: AsyncClient, user_client: AsyncClient,
             "movie_id": 1,
             "hall_id": 1,
             "start_time": (datetime.now(timezone.utc) + timedelta(hours=1)).isoformat(),
-            "price": 100.00
+            "price": 100.00,
+            "currency": "pln"
         })
     )
 
@@ -149,6 +150,7 @@ async def test_cancel_reservation_screening_already_started(client: AsyncClient,
             "status": "pending",
             "price_paid": 100,
 
+
         }])
     )
 
@@ -158,7 +160,8 @@ async def test_cancel_reservation_screening_already_started(client: AsyncClient,
             "movie_id": 1,
             "hall_id": 1,
             "start_time": (datetime.now(timezone.utc) - timedelta(hours=1)).isoformat(),
-            "price": 100.00
+            "price": 100.00,
+            "currency": "pln"
         })
     )
 
@@ -197,7 +200,8 @@ async def test_cancel_reservation_if_is_admin(client: AsyncClient, admin_client:
             "movie_id": 1,
             "hall_id": 1,
             "start_time": (datetime.now(timezone.utc) + timedelta(hours=1)).isoformat(),
-            "price": 100.00
+            "price": 100.00,
+            "currency": "pln"
         })
     )
 

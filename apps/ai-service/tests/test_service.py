@@ -26,13 +26,16 @@ async def test_search_showtimes(assistant_service: AssistantService) -> None:
 
     assert result[0].price == 100
 
-async def test_create_reservation(assistant_service_reservation: AssistantService) -> None:
+async def test_create_reservation(
+        assistant_service_reservation: AssistantService) -> None:
     create_reservation = CreateReservation(
         screening_id=1,
         seats=[SeatInput(row=1, seat=1)],
-        guest_email="test@example.com"
+        guest_email=None,
+        guest_name=None,
     )
-    result = await assistant_service_reservation.create_reservation(create_reservation)
+
+    result = await assistant_service_reservation.create_reservation(create_reservation, user_id="user-1", user_email="test@exapmple.com")
 
     assert result is not None
 

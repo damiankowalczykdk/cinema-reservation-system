@@ -30,6 +30,7 @@ class SearchScreeningRead(BaseModel):
     hall_id: int
     start_time: datetime
     price: Decimal
+    currency: str
 
 class ScreeningRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
@@ -39,3 +40,4 @@ class ScreeningRead(BaseModel):
     hall_id: int
     start_time: datetime
     price: Decimal
+    currency: str   

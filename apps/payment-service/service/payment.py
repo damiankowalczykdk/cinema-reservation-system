@@ -40,7 +40,7 @@ class PaymentService:
             f"/reservation/{create_payment.group_id}/total"
 
         )
-
+        currency = response["currency"]
         amount = Decimal(response["total_price"]) * 100
 
 
@@ -91,7 +91,7 @@ class PaymentService:
                     'line_items': [
                         {
                             "price_data": {
-                                "currency": settings.default_currency,
+                                "currency": currency,
                                 "product_data": {"name": f"Reservation {create_payment.group_id}"},
                                 "unit_amount": int(amount)
                             },
@@ -111,7 +111,7 @@ class PaymentService:
                     group_id=create_payment.group_id,
                     user_id=user_id,
                     amount=int(amount),
-                    currency=settings.default_currency,
+                    currency=currency,
                     status=Status.PENDING,
                     stripe_session_id=checkout_session.id
                 ))

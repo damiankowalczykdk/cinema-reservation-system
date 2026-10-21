@@ -1,12 +1,12 @@
+import hashlib
+import hmac
 import logging
 from datetime import timedelta, datetime, timezone
 from decimal import Decimal
 from typing import Sequence
-
-from sqlalchemy import RowMapping
 from temporalio.client import Client
 from temporalio.service import RPCError
-from core.config import database_settings
+from core.config import settings
 from core.exceptions import NotFoundException, ValidationException, ConflictException, UnauthorizedException
 from domain.models.reservation import Reservation, Status
 from domain.schemas.reservation import CreateReservation, OccupiedSeatsRead, SeatInput, ReservationSummaryRead
@@ -80,7 +80,7 @@ class ReservationService:
                 seat=s.seat,
                 status=Status.PENDING,
                 price_paid=screening.price,
-                expires_at=datetime.now(timezone.utc) + timedelta(minutes=database_settings.hold_minutes)
+                expires_at=datetime.now(timezone.utc) + timedelta(minutes=settings.hold_minutes)
 
             ))
 
@@ -91,8 +91,8 @@ class ReservationService:
         await self.temporal_client.start_workflow(
             "ReservationWorkflow",
             id=f"reservations-{group_id}",
-            args=[group_id, database_settings.hold_minutes, recipient_email],
-            task_queue=database_settings.task_queue
+            args=[group_id, settings.hold_minutes, recipient_email],
+            task_queue=settings.task_queue
         )
 
         return reservations
@@ -106,6 +106,9 @@ class ReservationService:
         seats = [SeatInput(row=r["row"], seat=r["seat"]) for r in reservation]
         total_price = sum(r["price_paid"] for r in reservation)
 
+        signature = hmac.new(settings.ticket_secret.encode("utf-8"), str(group_id).encode("utf-8"), hashlib.sha256).hexdigest()
+        ticket_code = f"{group_id}.{signature[:8].upper()}"
+
         return ReservationSummaryRead(
             group_id=res["group_id"],
             movie_title=res["movie_title"],
@@ -114,6 +117,8 @@ class ReservationService:
             hall_name=res["hall_name"],
             seats=seats,
             total_price=Decimal(total_price),
+            ticket_code=ticket_code,
+            currency=settings.currency
         )
 
 
@@ -136,7 +141,7 @@ class ReservationService:
         reservations = await self._check_group(group_id, lock=True)
 
         now = datetime.now(timezone.utc)
-        requested_expires_at = now + timedelta(minutes=database_settings.extend_minutes)
+        requested_expires_at = now + timedelta(minutes=settings.extend_minutes)
 
         for reservation in reservations:
             if reservation.status == Status.CANCELLED:
@@ -144,7 +149,7 @@ class ReservationService:
             if reservation.status == Status.CONFIRMED:
                 raise ConflictException("Reservation already confirmed")
 
-            max_expires_at = reservation.created_at + timedelta(minutes=database_settings.max_hold_minutes)
+            max_expires_at = reservation.created_at + timedelta(minutes=settings.max_hold_minutes)
             new_expires_at = min(requested_expires_at, max_expires_at)
 
             if reservation.expires_at < now:

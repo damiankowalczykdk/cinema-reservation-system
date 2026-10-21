@@ -1,7 +1,7 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
-class DatabaseSettings(BaseSettings):
+class Settings(BaseSettings):
 
     postgres_user: str
     postgres_password: str
@@ -21,6 +21,8 @@ class DatabaseSettings(BaseSettings):
     temporal_address: str
     task_queue: str = "reservations"
 
+    ticket_secret: str
+    currency: str = "pln"
 
     @property
     def POSTGRES_URI(self) -> str:
@@ -33,4 +35,4 @@ class DatabaseSettings(BaseSettings):
         frozen=True
     )
 
-database_settings = DatabaseSettings() #type: ignore
+settings = Settings() #type: ignore

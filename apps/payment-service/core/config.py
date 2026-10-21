@@ -17,8 +17,6 @@ class Settings(BaseSettings):
 
     http_timeout: int
 
-    default_currency: str = "pln"
-
     stripe_min_session_minutes: int = 31
     buffer: int = 10
 

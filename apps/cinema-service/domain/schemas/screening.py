@@ -2,6 +2,7 @@ from datetime import datetime
 from decimal import Decimal
 from pydantic import BaseModel, ConfigDict
 
+from core.config import settings
 from domain.models.movie import Genre
 
 
@@ -36,6 +37,7 @@ class SearchScreeningRead(BaseModel):
     price: Decimal
     city: str
     genre: Genre
+    currency: str = settings.currency
 
 class ScreeningRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
@@ -45,3 +47,4 @@ class ScreeningRead(BaseModel):
     hall_id: int
     start_time: datetime
     price: Decimal
+    currency: str = settings.currency

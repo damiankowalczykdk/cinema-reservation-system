@@ -107,7 +107,8 @@ async def test_get_screening_by_id_success(service_screening: ScreeningService, 
         movie_id=1,
         hall_id=2,
         start_time=datetime(2026, 8, 26, 18,0,0),
-        price=Decimal("19.99")
+        price=Decimal("19.99"),
+        currency="pln"
     )
 
     mock_repo_screening.get_by_id = AsyncMock(return_value=screening)

@@ -24,7 +24,8 @@ async def test_create_screening(client: AsyncClient, admin_client: AsyncClient, 
             "movie_id": 1,
             "hall_id": 1,
             "start_time": "2026-09-06T18:00:00Z",
-            "price": 10.00
+            "price": 10.00,
+            "currency": "pln"
         })
     )
 
@@ -48,7 +49,8 @@ async def test_create_screening_validation_exception(client: AsyncClient, admin_
             "movie_id": 1,
             "hall_id": 1,
             "start_time": "2026-09-06T18:00:00Z",
-            "price": 10.00
+            "price": 10.00,
+            "currency": "pln"
         })
     )
 
@@ -69,7 +71,8 @@ async def test_get_screening_by_id(client: AsyncClient, test_settings: Auth0Sett
             "movie_id": 1,
             "hall_id": 1,
             "start_time": "2026-09-06T18:00:00Z",
-            "price": 10.00
+            "price": 10.00,
+            "currency": "pln"
         })
     )
 
@@ -90,7 +93,8 @@ async def test_search_screening(client: AsyncClient, test_settings: Auth0Setting
             "cinema_name": "Test",
             "hall_id": 1,
             "start_time": "2026-09-06T18:00:00Z",
-            "price": 19.99
+            "price": 19.99,
+            "currency": "pln"
         }])
     )
 
@@ -107,7 +111,8 @@ async def test_get_screening_by_id_as_user(client: AsyncClient, user_client: Asy
             "movie_id": 1,
             "hall_id": 1,
             "start_time": "2026-09-06T18:00:00Z",
-            "price": 10.00
+            "price": 10.00,
+            "currency": "pln"
         })
     )
 
@@ -129,7 +134,8 @@ async def test_update_screening(client: AsyncClient, admin_client: AsyncClient, 
             "movie_id": 1,
             "hall_id": 1,
             "start_time": "2026-09-06T18:00:00Z",
-            "price": 100.00
+            "price": 100.00,
+            "currency": "pln"
         })
     )
 

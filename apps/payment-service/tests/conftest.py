@@ -93,6 +93,7 @@ async def fake_cinema_client():
     mock = AsyncMock()
     mock.request.return_value = {
         "total_price":"100",
+        "currency": "PLN",
         "expires_at": (datetime.now(timezone.utc) + timedelta(minutes=60)).isoformat()
     }
     return mock
@@ -102,6 +103,7 @@ async def fake_cinema_client_expire_time():
     mock = AsyncMock()
     mock.request.return_value = {
         "total_price":"100",
+        "currency": "zł",
         "expires_at": (datetime.now(timezone.utc) - timedelta(minutes=60)).isoformat()
     }
     return mock

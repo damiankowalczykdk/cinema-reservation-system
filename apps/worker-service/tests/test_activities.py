@@ -13,7 +13,7 @@ async def test_expire_reservation(mock_reservation_activities: ReservationActivi
 
 @patch("activities.send", new_callable=AsyncMock)
 async def test_send_email(mock_send: AsyncMock, mock_email_activities) -> None:
-    await mock_email_activities._send(email="test@example.com", subject="test", body="test")
+    await mock_email_activities._send(email="test@example.com", subject="test", body="test", qr_code=b"fake-png")
     mock_send.assert_awaited_once()
 
     message = mock_send.call_args.args[0]
@@ -34,7 +34,8 @@ async def test_send_tickets(mock_send: AsyncMock, mock_email_activities, mock_te
         "start_time": datetime.now(timezone.utc).isoformat(),
         "hall_name": "Test Hall",
         "seats": [{"row": 1, "seat": 1}],
-        "total_price": Decimal("25")
+        "total_price": Decimal("25"),
+        "ticket_code": "42.5FGTEW76"
     }
 
     await mock_email_activities.send_tickets(group_id=42, email="test@example.com")

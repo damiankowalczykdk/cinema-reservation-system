@@ -1,4 +1,3 @@
-import json
 from datetime import datetime, timezone, timedelta
 
 from httpx import AsyncClient
@@ -37,7 +36,7 @@ async def test_create_reservation(client: AsyncClient) -> None:
         "movie_id": movie_id,
         "hall_id": hall_id,
         "start_time": (datetime.now(timezone.utc) + timedelta(days=1)).isoformat(),
-        "price": 19.99
+        "price": 19.99,
     }
 
     _ = await client.post("/screening/", json=payload_screening)
@@ -45,7 +44,8 @@ async def test_create_reservation(client: AsyncClient) -> None:
     payload = {
         "screening_id": 1,
         "seats": [{"row": 1, "seat": 1}],
-        "guest_email": "example@example.com"
+        "guest_email": "example@example.com",
+        "currency": "pln"
     }
 
     response = await client.post("/reservation/", json=payload)
@@ -93,7 +93,8 @@ async def test_get_reservation_summary(client: AsyncClient) -> None:
         "movie_id": movie_id,
         "hall_id": hall_id,
         "start_time": (datetime.now(timezone.utc) + timedelta(days=1)).isoformat(),
-        "price": 19.99
+        "price": 19.99,
+        "currency": "pln"
     }
 
     response_screening = await client.post("/screening/", json=payload_screening)
@@ -113,7 +114,7 @@ async def test_get_reservation_summary(client: AsyncClient) -> None:
 
     data = response.json()
 
-    assert data["group_id"] == 2
+    assert data["group_id"] == group_id
     assert data["city"] == "Test City"
     assert data["total_price"] == "19.99"
 
@@ -152,7 +153,8 @@ async def test_get_reservation_by_group_id(client: AsyncClient) -> None:
         "movie_id": movie_id,
         "hall_id": hall_id,
         "start_time": (datetime.now(timezone.utc) + timedelta(days=1)).isoformat(),
-        "price": 19.99
+        "price": 19.99,
+        "currency": "pln"
     }
 
     response_screening = await client.post("/screening/", json=payload_screening)

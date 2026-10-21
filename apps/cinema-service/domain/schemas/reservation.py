@@ -2,6 +2,7 @@ from datetime import datetime
 from decimal import Decimal
 from pydantic import BaseModel, ConfigDict, Field
 
+from core.config import settings
 from domain.models.reservation import Status
 
 class SeatInput(BaseModel):
@@ -29,6 +30,7 @@ class OccupiedSeatsRead(BaseModel):
 
 class GroupTotalRead(BaseModel):
     total_price: Decimal
+    currency: str = settings.currency
 
 class ExtendRead(BaseModel):
     expires_at: datetime
@@ -56,3 +58,5 @@ class ReservationSummaryRead(BaseModel):
     hall_name: str
     seats: list[SeatInput]
     total_price: Decimal
+    ticket_code: str
+    currency: str = settings.currency

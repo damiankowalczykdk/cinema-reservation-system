@@ -21,7 +21,6 @@ class Auth0Settings(BaseSettings):
     payment_service_url: str
     ai_service_url: str
 
-    default_currency: str = "usd"
 
     model_config = SettingsConfigDict(
         env_file=".env",
