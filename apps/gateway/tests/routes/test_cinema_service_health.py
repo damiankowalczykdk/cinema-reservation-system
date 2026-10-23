@@ -1,18 +1,16 @@
 import httpx
 import respx
-from httpx import AsyncClient, Response
-
 from core.config import Auth0Settings
+from httpx import AsyncClient, Response
 
 
 @respx.mock
-async def test_cinema_service_health(client: AsyncClient, test_settings: Auth0Settings) -> None:
-
+async def test_cinema_service_health(
+    client: AsyncClient, test_settings: Auth0Settings
+) -> None:
     respx.get(f"{test_settings.cinema_service_url}/health").mock(
-        return_value=Response(200, json={
-            "status": "ok", "message": "cinema-service"
-        }))
-
+        return_value=Response(200, json={"status": "ok", "message": "cinema-service"})
+    )
 
     response = await client.get("/health")
 
@@ -20,11 +18,12 @@ async def test_cinema_service_health(client: AsyncClient, test_settings: Auth0Se
 
 
 @respx.mock
-async def test_cinema_service_health_unreachable(client: AsyncClient, test_settings: Auth0Settings) -> None:
-
-    respx.get(f"{test_settings.cinema_service_url}/health").mock(side_effect=httpx.ConnectError("boom")
+async def test_cinema_service_health_unreachable(
+    client: AsyncClient, test_settings: Auth0Settings
+) -> None:
+    respx.get(f"{test_settings.cinema_service_url}/health").mock(
+        side_effect=httpx.ConnectError("boom")
     )
-
 
     response = await client.get("/health", timeout=200)
 
@@ -36,12 +35,12 @@ async def test_cinema_service_health_unreachable(client: AsyncClient, test_setti
 
 
 @respx.mock
-async def test_cinema_service_health_unhandled_exception(client: AsyncClient, test_settings: Auth0Settings) -> None:
-
-    respx.get(f"{test_settings.cinema_service_url}/health").mock(return_value=Response(
-        200, json="error")
+async def test_cinema_service_health_unhandled_exception(
+    client: AsyncClient, test_settings: Auth0Settings
+) -> None:
+    respx.get(f"{test_settings.cinema_service_url}/health").mock(
+        return_value=Response(200, json="error")
     )
-
 
     response = await client.get("/health")
 

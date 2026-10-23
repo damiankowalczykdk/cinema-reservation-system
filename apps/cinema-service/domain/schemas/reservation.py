@@ -1,9 +1,11 @@
 from datetime import datetime
 from decimal import Decimal
-from pydantic import BaseModel, ConfigDict, Field
 
 from core.config import settings
+from pydantic import BaseModel, ConfigDict, Field
+
 from domain.models.reservation import Status
+
 
 class SeatInput(BaseModel):
     row: int
@@ -16,6 +18,7 @@ class CreateReservation(BaseModel):
     guest_email: str | None = None
     guest_name: str | None = None
 
+
 class UpdateReservation(BaseModel):
     screening_id: int
     row: int
@@ -23,17 +26,21 @@ class UpdateReservation(BaseModel):
     guest_email: str | None = None
     guest_name: str | None = None
 
+
 class OccupiedSeatsRead(BaseModel):
     seats: list[tuple[int, int]]
     row: int
     seat_per_row: int
 
+
 class GroupTotalRead(BaseModel):
     total_price: Decimal
     currency: str = settings.currency
 
+
 class ExtendRead(BaseModel):
     expires_at: datetime
+
 
 class ReservationRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
@@ -50,6 +57,7 @@ class ReservationRead(BaseModel):
     price_paid: Decimal
     expires_at: datetime
 
+
 class ReservationSummaryRead(BaseModel):
     group_id: int
     movie_title: str
@@ -60,6 +68,7 @@ class ReservationSummaryRead(BaseModel):
     total_price: Decimal
     ticket_code: str
     currency: str = settings.currency
+
 
 class VerifyTicket(BaseModel):
     ticket_code: str

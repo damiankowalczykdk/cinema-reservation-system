@@ -5,9 +5,11 @@ class AssistantRequest(BaseModel):
     message: str = Field(max_length=1000)
     conversation_id: str | None = None
 
+
 class ReservationInfo(BaseModel):
     group_id: int
     guest_email: str | None
+
 
 class AssistantResponse(BaseModel):
     answer: str

@@ -1,0 +1,27 @@
+[project]
+name = "cinema-reservation-system"
+version = "0.1.0"
+description = ""
+authors = [
+    {name = "Damian",email = "damiankowalczyk3688@gmail.com"}
+]
+requires-python = ">=3.13"
+dependencies = [
+]
+
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry]
+package-mode = false
+[dependency-groups]
+dev = [
+    "ruff (>=0.17.2,<0.18.0)",
+    "pre-commit (>=4.7.0,<5.0.0)"
+]
+
+
+[tool.ruff.lint.flake8-bugbear]
+extend-immutable-calls = ["fastapi.Depends", "fastapi.Header", "fastapi.Query"]

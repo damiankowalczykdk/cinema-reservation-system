@@ -1,13 +1,13 @@
-from datetime import datetime, timezone, timedelta
+from datetime import UTC, datetime, timedelta
 
 from httpx import AsyncClient
 
 
-async def  test_screening_crud_flow_success(client: AsyncClient) -> None:
+async def test_screening_crud_flow_success(client: AsyncClient) -> None:
     payload_cinema = {
         "name": "Test Cinema",
         "city": "Test City",
-        "address": "Test Address"
+        "address": "Test Address",
     }
     response_cinema = await client.post("/cinema/", json=payload_cinema)
 
@@ -24,12 +24,11 @@ async def  test_screening_crud_flow_success(client: AsyncClient) -> None:
     response_movie = await client.post("/movie/", json=payload_movie)
     movie_id = response_movie.json()["id"]
 
-
     payload_hall = {
         "cinema_id": cinema_id,
         "name": "Test Hall",
         "rows": 10,
-        "seats_per_row": 10
+        "seats_per_row": 10,
     }
     response_hall = await client.post("/hall/", json=payload_hall)
     hall_id = response_hall.json()["id"]
@@ -38,7 +37,7 @@ async def  test_screening_crud_flow_success(client: AsyncClient) -> None:
         "movie_id": movie_id,
         "hall_id": hall_id,
         "start_time": "2026-08-25T18:30:00Z",
-        "price": 19.99
+        "price": 19.99,
     }
 
     response_screening = await client.post("/screening/", json=payload_screening)
@@ -55,11 +54,10 @@ async def  test_screening_crud_flow_success(client: AsyncClient) -> None:
     assert response.status_code == 200
     assert data["price"] == "19.99"
 
-
-    update_screening = {
-        "price": 29.99
-    }
-    response_update = await client.patch(f"/screening/{screening_id}", json=update_screening)
+    update_screening = {"price": 29.99}
+    response_update = await client.patch(
+        f"/screening/{screening_id}", json=update_screening
+    )
     data = response_update.json()
     assert response_update.status_code == 200
 
@@ -71,7 +69,6 @@ async def  test_screening_crud_flow_success(client: AsyncClient) -> None:
 
     response = await client.get(f"/screening/{screening_id}")
 
-
     assert response.status_code == 404
 
 
@@ -79,7 +76,7 @@ async def test_search_screening(client: AsyncClient) -> None:
     payload_cinema = {
         "name": "Test Cinema",
         "city": "Test City",
-        "address": "Test Address"
+        "address": "Test Address",
     }
     response_cinema = await client.post("/cinema/", json=payload_cinema)
 
@@ -100,7 +97,7 @@ async def test_search_screening(client: AsyncClient) -> None:
         "cinema_id": cinema_id,
         "name": "Test Hall",
         "rows": 10,
-        "seats_per_row": 10
+        "seats_per_row": 10,
     }
     response_hall = await client.post("/hall/", json=payload_hall)
     hall_id = response_hall.json()["id"]
@@ -108,17 +105,23 @@ async def test_search_screening(client: AsyncClient) -> None:
     payload_screening = {
         "movie_id": movie_id,
         "hall_id": hall_id,
-        "start_time": (datetime.now(tz=timezone.utc) + timedelta(hours=2)).isoformat(),
-        "price": 19.99
+        "start_time": (datetime.now(tz=UTC) + timedelta(hours=2)).isoformat(),
+        "price": 19.99,
     }
 
     _ = await client.post("/screening/", json=payload_screening)
 
-    response = await client.get(f"/screening/search",
+    response = await client.get(
+        "/screening/search",
         params={
-            "movie_id": movie_id, "cinema_id": cinema_id, "date_from": datetime.now(tz=timezone.utc).isoformat(), "date_to": (datetime.now(tz=timezone.utc) + timedelta(days=1)).isoformat(),
-            "city": "Test City", "genre": "crime"
-        })
+            "movie_id": movie_id,
+            "cinema_id": cinema_id,
+            "date_from": datetime.now(tz=UTC).isoformat(),
+            "date_to": (datetime.now(tz=UTC) + timedelta(days=1)).isoformat(),
+            "city": "Test City",
+            "genre": "crime",
+        },
+    )
 
     data = response.json()
 
@@ -127,4 +130,3 @@ async def test_search_screening(client: AsyncClient) -> None:
     assert len(data) == 1
     assert data[0]["movie_title"] == "Movie"
     assert data[0]["movie_id"] == movie_id
-

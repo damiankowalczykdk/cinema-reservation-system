@@ -1,9 +1,10 @@
-from typing import Sequence
+from collections.abc import Sequence
 
+from domain.models.cinema import Cinema
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+
 from repositories.generic import GenericRepository
-from domain.models.cinema import Cinema
 
 
 class CinemaRepository(GenericRepository[Cinema]):
@@ -19,4 +20,3 @@ class CinemaRepository(GenericRepository[Cinema]):
         stmt = select(Cinema).where(Cinema.address == address)
         result = await self.session.execute(stmt)
         return result.scalar_one_or_none()
-

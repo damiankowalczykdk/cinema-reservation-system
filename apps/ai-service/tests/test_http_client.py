@@ -1,10 +1,9 @@
-from fastapi import HTTPException
-import pytest
 import httpx
+import pytest
 import respx
-from httpx import ConnectError, Response, Request
-
 from core.http_client import ServiceRequestClient
+from fastapi import HTTPException
+from httpx import ConnectError, Request, Response
 
 
 @respx.mock
@@ -12,11 +11,10 @@ async def test_connection_error() -> None:
     async with httpx.AsyncClient() as ac:
         client = ServiceRequestClient(ac, base_url="http://fake-service")
 
-        respx.get(f"http://fake-service").side_effect = ConnectError("error")
+        respx.get("http://fake-service").side_effect = ConnectError("error")
 
         with pytest.raises(HTTPException) as exc:
             await client.request("GET", path="")
-
 
         assert exc.value.status_code == 503
 
@@ -26,7 +24,7 @@ async def test_error_status_empty_body() -> None:
     async with httpx.AsyncClient() as ac:
         client = ServiceRequestClient(ac, base_url="http://fake-service")
 
-        respx.get(f"http://fake-service").mock(return_value=Response(status_code=404))
+        respx.get("http://fake-service").mock(return_value=Response(status_code=404))
 
         with pytest.raises(HTTPException) as exc:
             await client.request("GET", path="")
@@ -37,6 +35,7 @@ async def test_error_status_empty_body() -> None:
 def handler(_: httpx.Request) -> httpx.Response:
     return httpx.Response(status_code=200, json={"message": "ok"})
 
+
 async def test_response_json() -> None:
     async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as ac:
         client = ServiceRequestClient(ac, base_url="http://fake-service")
@@ -44,13 +43,14 @@ async def test_response_json() -> None:
         assert result == {"message": "ok"}
 
 
-
 @respx.mock
 async def test_error_response_with_message_field() -> None:
     async with httpx.AsyncClient() as ac:
         client = ServiceRequestClient(ac, base_url="http://fake-service")
 
-        respx.get(f"http://fake-service").mock(return_value=Response(status_code=404, json={"message": "not found"}))
+        respx.get("http://fake-service").mock(
+            return_value=Response(status_code=404, json={"message": "not found"})
+        )
 
         with pytest.raises(HTTPException) as exc:
             await client.request("GET", path="")

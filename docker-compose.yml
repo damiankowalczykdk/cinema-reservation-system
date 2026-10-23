@@ -178,5 +178,3 @@ volumes:
 
 networks:
   backend:
-
-

@@ -1,27 +1,70 @@
+from domain.schemas.movie import CreateMovie, MovieRead, UpdateMovie
 from fastapi import APIRouter, status
-from domain.schemas.movie import MovieRead, CreateMovie, UpdateMovie
+
 from api.dependencies import CinemaServiceClient, admin
 
 router = APIRouter(prefix="/movies", tags=["movies"])
 
-@router.post("/", response_model=MovieRead, status_code=status.HTTP_201_CREATED, summary="Create Movie", dependencies=[admin])
-async def create_movie(payload: CreateMovie, movie_client: CinemaServiceClient) -> MovieRead:
-    return await movie_client.request("POST", f"/movie/", json=payload.model_dump(mode="json"))
 
-@router.get("/{movie_id}", response_model=MovieRead, status_code=status.HTTP_200_OK ,summary="Get Movie")
-async def get_movie_by_id(movie_id: int, movie_client: CinemaServiceClient) -> MovieRead:
+@router.post(
+    "/",
+    response_model=MovieRead,
+    status_code=status.HTTP_201_CREATED,
+    summary="Create Movie",
+    dependencies=[admin],
+)
+async def create_movie(
+    payload: CreateMovie, movie_client: CinemaServiceClient
+) -> MovieRead:
+    return await movie_client.request(
+        "POST", "/movie/", json=payload.model_dump(mode="json")
+    )
+
+
+@router.get(
+    "/{movie_id}",
+    response_model=MovieRead,
+    status_code=status.HTTP_200_OK,
+    summary="Get Movie",
+)
+async def get_movie_by_id(
+    movie_id: int, movie_client: CinemaServiceClient
+) -> MovieRead:
     return await movie_client.request("GET", f"/movie/{movie_id}")
 
-@router.get("", response_model=list[MovieRead], status_code=status.HTTP_200_OK, summary="Get Movies")
-async def get_movie_by_title(title: str, movie_client: CinemaServiceClient) -> list[MovieRead]:
-    return await movie_client.request("GET", f"/movie/", params={"title": title})
+
+@router.get(
+    "",
+    response_model=list[MovieRead],
+    status_code=status.HTTP_200_OK,
+    summary="Get Movies",
+)
+async def get_movie_by_title(
+    title: str, movie_client: CinemaServiceClient
+) -> list[MovieRead]:
+    return await movie_client.request("GET", "/movie/", params={"title": title})
 
 
-@router.patch("/{movie_id}", response_model=MovieRead, status_code=status.HTTP_200_OK, summary="Update Movie", dependencies=[admin])
-async def update_movie(movie_id: int, payload: UpdateMovie, movie_client: CinemaServiceClient) -> MovieRead:
-    return await movie_client.request("PATCH", f"/movie/{movie_id}", json=payload.model_dump(mode="json"))
+@router.patch(
+    "/{movie_id}",
+    response_model=MovieRead,
+    status_code=status.HTTP_200_OK,
+    summary="Update Movie",
+    dependencies=[admin],
+)
+async def update_movie(
+    movie_id: int, payload: UpdateMovie, movie_client: CinemaServiceClient
+) -> MovieRead:
+    return await movie_client.request(
+        "PATCH", f"/movie/{movie_id}", json=payload.model_dump(mode="json")
+    )
 
 
-@router.delete("/{movie_id}", status_code=status.HTTP_204_NO_CONTENT, summary="Delete Movie", dependencies=[admin])
+@router.delete(
+    "/{movie_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Delete Movie",
+    dependencies=[admin],
+)
 async def delete_movie(movie_id: int, movie_client: CinemaServiceClient) -> None:
     await movie_client.request("DELETE", f"/movie/{movie_id}")

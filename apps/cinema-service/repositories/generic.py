@@ -1,13 +1,12 @@
-from typing import Generic, TypeVar, Type, Sequence
+from collections.abc import Sequence
+
+from core.database import Base
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from core.database import Base
-
-ModelType = TypeVar("ModelType", bound=Base)
 
 
-class GenericRepository(Generic[ModelType]):
-    def __init__(self, session: AsyncSession, model: Type[ModelType]):
+class GenericRepository[ModelType: Base]:
+    def __init__(self, session: AsyncSession, model: type[ModelType]):
         self.session = session
         self.model = model
 
@@ -24,7 +23,6 @@ class GenericRepository(Generic[ModelType]):
     async def get_by_id(self, id: int) -> ModelType | None:
         return await self.session.get(self.model, id)
 
-
     async def get_all(self) -> Sequence[ModelType]:
         result = await self.session.execute(select(self.model))
         return result.scalars().all()
@@ -33,7 +31,3 @@ class GenericRepository(Generic[ModelType]):
         instance = await self.session.get(self.model, id)
         await self.session.delete(instance)
         await self.session.flush()
-
-
-
-

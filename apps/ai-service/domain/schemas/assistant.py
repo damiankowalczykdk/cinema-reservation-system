@@ -1,11 +1,14 @@
 from datetime import datetime
 from decimal import Decimal
+
 from core.config import settings
-from pydantic import BaseModel, field_serializer, Field
+from pydantic import BaseModel, Field, field_serializer
+
 
 class ReservationInfo(BaseModel):
     group_id: int
     guest_email: str | None = None
+
 
 class AssistantResponse(BaseModel):
     answer: str
@@ -13,9 +16,11 @@ class AssistantResponse(BaseModel):
     reservation: ReservationInfo | None = None
     seats_map_screening_id: int | None = None
 
+
 class AssistantRequest(BaseModel):
     message: str = Field(max_length=1000)
     conversation_id: str | None = None
+
 
 class ShowtimeRead(BaseModel):
     screening_id: int
@@ -30,14 +35,17 @@ class ShowtimeRead(BaseModel):
     def format_start_time(self, value: datetime) -> str:
         return value.astimezone(settings.WARSAW).strftime("%A %Y-%m-%d %H:%M")
 
+
 class SeatInput(BaseModel):
     row: int
     seat: int
+
 
 class SeatMapRead(BaseModel):
     seats: list[tuple[int, int]]
     row: int
     seat_per_row: int
+
 
 class CreateReservation(BaseModel):
     screening_id: int
@@ -59,5 +67,3 @@ class ReservationRead(BaseModel):
     @field_serializer("expires_at")
     def format_expires_at(self, value: datetime) -> str:
         return value.astimezone(settings.WARSAW).strftime("%H:%M")
-
-

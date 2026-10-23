@@ -1,8 +1,11 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from enum import Enum
-from sqlalchemy import Integer, String, DateTime, Enum as SaEnum, Index
+
 from core.database import Base
+from sqlalchemy import DateTime, Index, Integer, String
+from sqlalchemy import Enum as SaEnum
 from sqlalchemy.orm import Mapped, mapped_column
+
 
 class Status(Enum):
     PENDING = "PENDING"
@@ -12,8 +15,7 @@ class Status(Enum):
 
 
 class Payment(Base):
-    __tablename__ = 'payments'
-
+    __tablename__ = "payments"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     group_id: Mapped[int] = mapped_column(Integer, nullable=False)
@@ -23,17 +25,21 @@ class Payment(Base):
     status: Mapped[Status] = mapped_column(SaEnum(Status), nullable=False)
     stripe_session_id: Mapped[str] = mapped_column(String(255), nullable=False)
 
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(tz=timezone.utc))
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=lambda: datetime.now(tz=UTC)
+    )
 
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
-        default=lambda: datetime.now(tz=timezone.utc),
-        onupdate=lambda: datetime.now(tz=timezone.utc)
+        default=lambda: datetime.now(tz=UTC),
+        onupdate=lambda: datetime.now(tz=UTC),
     )
 
-    __table_args__ = Index(
-        "uq_payment_group_active",
-        "group_id",
-        unique=True,
-        postgresql_where=(status != "FAILED"),
-    ),
+    __table_args__ = (
+        Index(
+            "uq_payment_group_active",
+            "group_id",
+            unique=True,
+            postgresql_where=(status != "FAILED"),
+        ),
+    )

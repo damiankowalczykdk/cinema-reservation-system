@@ -2,7 +2,6 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
-
     postgres_payment_user: str
     postgres_payment_password: str
     postgres_payment_host: str
@@ -26,11 +25,7 @@ class Settings(BaseSettings):
     def POSTGRES_URI(self) -> str:
         return f"postgresql+asyncpg://{self.postgres_payment_user}:{self.postgres_payment_password}@{self.postgres_payment_host}:{self.postgres_payment_port}/{self.postgres_payment_db}"
 
+    model_config = SettingsConfigDict(env_file=".env", extra="ignore", frozen=True)
 
-    model_config = SettingsConfigDict(
-        env_file=".env",
-        extra="ignore",
-        frozen=True
-    )
 
-settings = Settings() #type: ignore
+settings = Settings()  # type: ignore

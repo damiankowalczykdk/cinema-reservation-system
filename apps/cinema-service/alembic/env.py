@@ -1,16 +1,17 @@
 import asyncio
 from logging.config import fileConfig
+
+from alembic import context
+from core.config import settings
+from core.database import Base
+from domain.models.cinema import Cinema  # noqa: F401
+from domain.models.hall import Hall  # noqa: F401
+from domain.models.movie import Movie  # noqa: F401
+from domain.models.reservation import Reservation  # noqa: F401
+from domain.models.screening import Screening  # noqa: F401
 from sqlalchemy import pool
 from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import async_engine_from_config
-from alembic import context
-from core.database import Base
-from domain.models.cinema import Cinema # noqa: F401
-from domain.models.hall import Hall # noqa: F401
-from domain.models.movie import Movie # noqa: F401
-from domain.models.screening import Screening # noqa: F401
-from domain.models.reservation import Reservation # noqa: F401
-from core.config import settings
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
