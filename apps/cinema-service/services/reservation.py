@@ -9,7 +9,8 @@ from temporalio.service import RPCError
 from core.config import settings
 from core.exceptions import NotFoundException, ValidationException, ConflictException, UnauthorizedException
 from domain.models.reservation import Reservation, Status
-from domain.schemas.reservation import CreateReservation, OccupiedSeatsRead, SeatInput, ReservationSummaryRead
+from domain.schemas.reservation import CreateReservation, OccupiedSeatsRead, SeatInput, ReservationSummaryRead, \
+    VerifyTicket
 from repositories.hall import HallRepository
 from repositories.reservation import ReservationRepository
 from repositories.screening import ScreeningRepository
@@ -106,8 +107,7 @@ class ReservationService:
         seats = [SeatInput(row=r["row"], seat=r["seat"]) for r in reservation]
         total_price = sum(r["price_paid"] for r in reservation)
 
-        signature = hmac.new(settings.ticket_secret.encode("utf-8"), str(group_id).encode("utf-8"), hashlib.sha256).hexdigest()
-        ticket_code = f"{group_id}.{signature[:8].upper()}"
+        ticket_code = f"{group_id}.{self._sign(group_id)}"
 
         return ReservationSummaryRead(
             group_id=res["group_id"],
@@ -120,6 +120,32 @@ class ReservationService:
             ticket_code=ticket_code,
             currency=settings.currency
         )
+
+
+    async def verify_ticket(self, ticket_code: str) -> ReservationSummaryRead:
+        try:
+            split = ticket_code.split(".", 1)
+            signature = split[1]
+            group_id = int(split[0])
+        except (ValueError, IndexError):
+            raise NotFoundException("Invalid ticket code")
+
+
+        expected = self._sign(group_id)
+        res = hmac.compare_digest(signature.upper(), expected)
+        if not res:
+            raise NotFoundException("Invalid ticket code")
+
+        reservations = await self._check_group(group_id)
+        if any(r.status != Status.CONFIRMED for r in reservations):
+            raise ConflictException("Ticket not paid")
+
+        return await self.get_reservation_summary(group_id)
+
+
+
+
+
 
 
     async def get_reservations_by_group_id(self, group_id: int) -> Sequence[Reservation]:
@@ -248,6 +274,14 @@ class ReservationService:
                 r.status = Status.CONFIRMED
 
         await self.reservation_repository.add_all(list(reservations))
+
+    def _sign(self, group_id: int) -> str:
+
+        signature = hmac.new(settings.ticket_secret.encode("utf-8"), str(group_id).encode("utf-8"),
+                             hashlib.sha256).hexdigest()
+        ticket_code = f"{signature[:8].upper()}"
+
+        return ticket_code
 
 
     async def _check_group(self, group_id: int, lock: bool = False) -> Sequence[Reservation]:

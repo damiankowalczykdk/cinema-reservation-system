@@ -1,4 +1,5 @@
 from datetime import datetime, timezone, timedelta
+
 import respx
 from httpx import AsyncClient, Response
 from core.config import Auth0Settings
@@ -280,4 +281,21 @@ async def test_delete_reservation_by_id(client: AsyncClient, admin_client: Async
     assert response.status_code == 204
 
 
+@respx.mock
+async def test_verify_ticket(client: AsyncClient, admin_client: AsyncClient, test_settings: Auth0Settings) -> None:
+    respx.post(f"{test_settings.cinema_service_url}/reservation/ticket/verify").mock(
+        return_value=Response(200, json={
+            "group_id": 1,
+            "movie_title": "Test Movie",
+            "city": "Test City",
+            "start_time": datetime.now(timezone.utc).isoformat(),
+            "hall_name": "Test Hall",
+            "seats": [{"row": 1, "seat": 1}],
+            "total_price": 19.99,
+            "ticket_code": "42.ABCEDFGH",
+            "currency": "PLN"
+        })
+    )
 
+    response = await admin_client.post("/reservations/ticket/verify", json={"ticket_code": "42.ABCEDFGH"})
+    assert response.status_code == 200

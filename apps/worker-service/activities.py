@@ -57,7 +57,7 @@ class EmailActivities:
         start_time = datetime.fromisoformat(data["start_time"]).astimezone(settings.WARSAW)
         seats = [f"{chr(ord('A') + seat['row'] - 1)}{seat['seat']}" for seat in data["seats"]]
         seats_text = ", ".join(seats)
-        total_text = f"{Decimal(data["total_price"]):.2f} zł".replace(".", ",")
+        total_text = f"{Decimal(data["total_price"]):.2f} {data["currency"].upper()}".replace(".", ",")
         body = "\n".join([
             f"Kod rezerwacji: {data['ticket_code']}",
             "",

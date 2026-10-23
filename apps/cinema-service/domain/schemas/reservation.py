@@ -60,3 +60,6 @@ class ReservationSummaryRead(BaseModel):
     total_price: Decimal
     ticket_code: str
     currency: str = settings.currency
+
+class VerifyTicket(BaseModel):
+    ticket_code: str

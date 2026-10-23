@@ -3,7 +3,7 @@ from fastapi import APIRouter, status
 from api.dependencies import ReservationServiceDep, CurrentUserId, IsAdmin, CurrentUserEmail
 from domain.models.reservation import Reservation
 from domain.schemas.reservation import ReservationRead, CreateReservation, OccupiedSeatsRead, GroupTotalRead, \
-    ExtendRead, ReservationSummaryRead
+    ExtendRead, ReservationSummaryRead, VerifyTicket
 
 router = APIRouter(prefix="/reservation", tags=["reservation"])
 
@@ -24,6 +24,10 @@ async def get_reservations_by_group_id(group_id: int, service: ReservationServic
 @router.get("/{group_id}/summary", response_model=ReservationSummaryRead, status_code=status.HTTP_200_OK, summary="Get summary reservations")
 async def get_reservations_summary(group_id: int, service: ReservationServiceDep) -> ReservationSummaryRead:
     return await service.get_reservation_summary(group_id)
+
+@router.post("/ticket/verify", response_model=ReservationSummaryRead, status_code=status.HTTP_200_OK, summary="Verify ticket")
+async def verify_ticket(payload: VerifyTicket, service: ReservationServiceDep) -> ReservationSummaryRead:
+    return await service.verify_ticket(payload.ticket_code)
 
 @router.post("/{group_id}/extend",response_model=ExtendRead, status_code=status.HTTP_200_OK, summary="Extend reservations")
 async def extend(group_id: int, service: ReservationServiceDep) -> ExtendRead:

@@ -9,7 +9,7 @@ from core.exceptions import NotFoundException, ValidationException, ConflictExce
 from domain.models.hall import Hall
 from domain.models.reservation import Reservation, Status
 from domain.models.screening import Screening
-from domain.schemas.reservation import CreateReservation, ReservationRead, SeatInput
+from domain.schemas.reservation import CreateReservation, ReservationRead, SeatInput, ReservationSummaryRead
 from services.reservation import ReservationService
 
 
@@ -806,4 +806,37 @@ async def test_get_reservation_summary_if_not_reservation(reservation_service: R
 
     with pytest.raises(NotFoundException, match="Reservation not found"):
         await reservation_service.get_reservation_summary(1)
+
+
+async def test_verify_ticket_invalid_code(reservation_service: ReservationService, mock_repo_reservation: AsyncMock) -> None:
+    with pytest.raises(NotFoundException, match="Invalid ticket code"):
+        await reservation_service.verify_ticket("45.ABCDEFGT")
+
+async def test_verify_ticket_reservation_not_paid(reservation_service: ReservationService, mock_repo_reservation: AsyncMock) -> None:
+    reservation = Reservation(
+        id=1,
+        screening_id=1,
+        group_id=1,
+        user_id="test123",
+        row=1,
+        seat=1,
+        status=Status.PENDING,
+        price_paid=Decimal("19.99"),
+        expires_at=datetime.now(timezone.utc) + timedelta(minutes=15),
+        created_at=datetime.now(timezone.utc)
+    )
+
+    mock_repo_reservation.get_by_group_id = AsyncMock(return_value=[reservation])
+
+    ticket_code = f"{reservation.group_id}.{reservation_service._sign(group_id=reservation.group_id)}"
+
+    with pytest.raises(ConflictException, match="Ticket not paid"):
+        await reservation_service.verify_ticket(ticket_code=ticket_code)
+
+async def test_verify_ticket_malformed_coed(reservation_service: ReservationService, mock_repo_reservation: AsyncMock) -> None:
+
+    with pytest.raises(NotFoundException, match="Invalid ticket code"):
+        await reservation_service.verify_ticket("45ABCDEFGT")
+
+
 

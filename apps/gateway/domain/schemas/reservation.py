@@ -1,3 +1,4 @@
+from datetime import datetime
 from decimal import Decimal
 from enum import Enum
 from pydantic import BaseModel, ConfigDict, Field
@@ -44,3 +45,17 @@ class ReservationRead(BaseModel):
     seat: int
     status: Status
     price_paid: Decimal
+
+class ReservationSummaryRead(BaseModel):
+    group_id: int
+    movie_title: str
+    city: str
+    start_time: datetime
+    hall_name: str
+    seats: list[SeatInput]
+    total_price: Decimal
+    ticket_code: str
+    currency: str
+
+class VerifyTicket(BaseModel):
+    ticket_code: str

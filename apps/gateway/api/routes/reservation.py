@@ -5,7 +5,8 @@ from pydantic import TypeAdapter
 from api.dependencies import CinemaServiceClient, admin, CurrentUser, PaymentServiceClient
 from core.security import get_current_user
 from domain.schemas.auth import TokenPayload
-from domain.schemas.reservation import ReservationRead, CreateReservation, OccupiedSeatsRead
+from domain.schemas.reservation import ReservationRead, CreateReservation, OccupiedSeatsRead, ReservationSummaryRead, \
+    VerifyTicket
 from fastapi import APIRouter, status, Depends, HTTPException
 
 from domain.schemas.screening import ScreeningRead
@@ -36,6 +37,17 @@ async def create_reservation(
         json=payload.model_dump(mode="json"),
         headers=headers
     )
+
+@router.post(
+    "/ticket/verify",
+    response_model=ReservationSummaryRead,
+    status_code=status.HTTP_200_OK,
+    summary="Verify tickets",
+    dependencies=[admin]
+)
+async def verify_ticket(payload: VerifyTicket, reservation_client: CinemaServiceClient) -> ReservationSummaryRead:
+    return await reservation_client.request("POST", "/reservation/ticket/verify", json=payload.model_dump(mode="json"))
+
 @router.get(
     "/{group_id}",
     response_model=list[ReservationRead],
