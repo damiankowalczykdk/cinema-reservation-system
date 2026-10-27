@@ -10,7 +10,6 @@ from main import app
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
     AsyncSession,
-    async_sessionmaker,
     create_async_engine,
 )
 from testcontainers.community.postgres import PostgresContainer
@@ -33,10 +32,14 @@ async def engine(postgres_container) -> AsyncGenerator[AsyncEngine]:
 
 @pytest_asyncio.fixture
 async def db_session(engine: AsyncEngine) -> AsyncGenerator[AsyncSession]:
-    async_session = async_sessionmaker(engine, expire_on_commit=False)
-    async with async_session() as session:
+    async with engine.connect() as conn:
+        transaction = await conn.begin()
+        session = AsyncSession(
+            bind=conn, expire_on_commit=False, join_transaction_mode="create_savepoint"
+        )
         yield session
-        await session.rollback()
+        await session.close()
+        await transaction.rollback()
 
 
 @pytest.fixture

@@ -3,6 +3,7 @@ from collections.abc import Sequence
 from domain.models.reservation import Reservation
 from domain.schemas.reservation import (
     CreateReservation,
+    ExpireRead,
     ExtendRead,
     GroupTotalRead,
     OccupiedSeatsRead,
@@ -153,7 +154,11 @@ async def set_confirm_reservation(
 
 
 @router.post(
-    "/{group_id}/expire", status_code=status.HTTP_200_OK, summary="Expire reservation"
+    "/{group_id}/expire",
+    response_model=ExpireRead,
+    status_code=status.HTTP_200_OK,
+    summary="Expire reservation",
 )
-async def expire_group(group_id: int, service: ReservationServiceDep) -> None:
-    await service.expire_group(group_id)
+async def expire_group(group_id: int, service: ReservationServiceDep) -> ExpireRead:
+    res = await service.expire_group(group_id)
+    return ExpireRead(status=res[0].status, expires_at=res[0].expires_at)

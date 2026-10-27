@@ -46,6 +46,7 @@ async def test_send_tickets(
         "seats": [{"row": 1, "seat": 1}],
         "total_price": Decimal(25),
         "ticket_code": "42.5FGTEW76",
+        "currency": "PLN",
     }
 
     await mock_email_activities.send_tickets(group_id=42, email="test@example.com")

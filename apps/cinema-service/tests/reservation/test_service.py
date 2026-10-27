@@ -76,6 +76,37 @@ async def test_create_reservation_success(
     mock_repo_reservation.add_all.assert_called_once()
 
 
+async def test_create_reservation_if_workflow_not_running(
+    reservation_service: ReservationService,
+    mock_repo_screening: AsyncMock,
+    mock_repo_reservation: AsyncMock,
+    mock_repo_hall: AsyncMock,
+    mock_temporal_client: AsyncMock,
+) -> None:
+    screening = Screening(
+        id=1,
+        movie_id=1,
+        hall_id=1,
+        start_time=datetime.now(UTC) + timedelta(hours=1),
+        price=Decimal("19.99"),
+    )
+
+    hall = Hall(id=1, cinema_id=1, name="Test Hall", rows=10, seats_per_row=10)
+
+    mock_repo_screening.get_by_id = AsyncMock(return_value=screening)
+    mock_repo_hall.get_by_id = AsyncMock(return_value=hall)
+
+    create_reservation = CreateReservation(
+        screening_id=1, seats=[SeatInput(row=1, seat=2)]
+    )
+
+    mock_temporal_client.start_workflow.side_effect = RPCError(
+        "workflow not found", RPCStatusCode.NOT_FOUND, b""
+    )
+
+    await reservation_service.create_reservation(create_reservation, user_id="test123")
+
+
 async def test_create_reservation_screening_already_started(
     reservation_service: ReservationService,
     mock_repo_screening: AsyncMock,
@@ -859,6 +890,45 @@ async def test_verify_ticket_reservation_not_paid(
     ticket_code = f"{reservation.group_id}.{reservation_service._sign(group_id=reservation.group_id)}"
 
     with pytest.raises(ConflictException, match="Ticket not paid"):
+        await reservation_service.verify_ticket(ticket_code=ticket_code)
+
+
+async def test_verify_ticket_reservation_if_expired(
+    reservation_service: ReservationService, mock_repo_reservation: AsyncMock
+) -> None:
+    reservation = Reservation(
+        id=1,
+        screening_id=1,
+        group_id=1,
+        user_id="test123",
+        row=1,
+        seat=1,
+        status=Status.CONFIRMED,
+        price_paid=Decimal("19.99"),
+        expires_at=datetime.now(UTC) + timedelta(minutes=15),
+        created_at=datetime.now(UTC),
+    )
+
+    mock_repo_reservation.get_by_group_id = AsyncMock(return_value=[reservation])
+
+    ticket_code = f"{reservation.group_id}.{reservation_service._sign(group_id=reservation.group_id)}"
+
+    mock_repo_reservation.get_reservation_summary = AsyncMock(
+        return_value=[
+            {
+                "group_id": 1,
+                "movie_title": "Test Movie",
+                "city": "Test City",
+                "start_time": datetime.now(UTC) - timedelta(hours=2),
+                "hall_name": "Test Hall",
+                "row": 1,
+                "seat": 1,
+                "price_paid": Decimal("19.99"),
+            }
+        ]
+    )
+
+    with pytest.raises(ConflictException, match="Ticket expired"):
         await reservation_service.verify_ticket(ticket_code=ticket_code)
 
 

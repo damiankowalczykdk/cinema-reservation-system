@@ -42,6 +42,11 @@ class ExtendRead(BaseModel):
     expires_at: datetime
 
 
+class ExpireRead(BaseModel):
+    status: Status
+    expires_at: datetime
+
+
 class ReservationRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 

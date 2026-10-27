@@ -29,6 +29,7 @@ services:
       context: ./apps/cinema-service
       dockerfile: Dockerfile
     restart: always
+    command: ["fastapi", "run", "main.py", "--host", "0.0.0.0", "--port", "8001", "--reload"]
     depends_on:
       postgres:
         condition: service_healthy
@@ -52,6 +53,7 @@ services:
       context: ./apps/ai-service
       dockerfile: Dockerfile
     restart: always
+    command: ["fastapi", "run", "main.py", "--host", "0.0.0.0", "--port", "8003", "--reload"]
     depends_on:
       - cinema-service
       - redis
@@ -70,13 +72,13 @@ services:
       context: ./apps/worker-service
       dockerfile: Dockerfile
     restart: always
+    command: ["watchfiles", "python main.py"]
     depends_on:
       - temporal
       - cinema-service
       - mailpit
     environment:
       CINEMA_SERVICE_URL: ${CINEMA_SERVICE_URL}
-      FRONTEND_URL: ${FRONTEND_URL}
       TEMPORAL_ADDRESS: ${TEMPORAL_ADDRESS}
       SMTP_HOST: ${SMTP_HOST}
       SMTP_PORT: ${SMTP_PORT}
@@ -93,6 +95,7 @@ services:
       context: ./apps/payment-service
       dockerfile: Dockerfile
     restart: always
+    command: ["fastapi", "run", "main.py", "--host", "0.0.0.0", "--port", "8002", "--reload"]
     depends_on:
       postgres:
         condition: service_healthy
@@ -118,6 +121,7 @@ services:
       context: ./apps/gateway
       dockerfile: Dockerfile
     restart: always
+    command: ["fastapi", "run", "main.py", "--host", "0.0.0.0", "--port", "8000", "--reload"]
     depends_on:
       - cinema-service
       - ai-service
@@ -154,7 +158,10 @@ services:
   temporal:
     image: temporalio/temporal
     restart: always
-    command: ["server", "start-dev", "--ip", "0.0.0.0"]
+    user: root
+    command: ["server", "start-dev", "--ip", "0.0.0.0", "--db-filename", "/data/temporal.db"]
+    volumes:
+      - temporal_data:/data
     ports:
       - "8233:8233"
       - "7233:7233"
@@ -174,6 +181,7 @@ services:
 volumes:
   postgres_data:
   gateway:
+  temporal_data:
 
 
 networks:

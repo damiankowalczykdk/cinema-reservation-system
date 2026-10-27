@@ -20,6 +20,9 @@ class GenericRepository[ModelType: Base]:
         await self.session.flush()
         return instances
 
+    async def commit(self) -> None:
+        await self.session.commit()
+
     async def get_by_id(self, id: int) -> ModelType | None:
         return await self.session.get(self.model, id)
 

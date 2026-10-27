@@ -40,4 +40,4 @@ RUN useradd --create-home appuser
 USER appuser
 
 
-CMD ["watchfiles", "python main.py"]
+CMD ["python", "main.py"]

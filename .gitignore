@@ -59,3 +59,5 @@ docker-data/
 *.bak
 *.tmp
 *.swp
+
+k8s/**/secret.yaml

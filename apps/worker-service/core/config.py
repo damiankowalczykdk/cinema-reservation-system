@@ -12,8 +12,6 @@ class Settings(BaseSettings):
     smtp_port: int
     smtp_sender: str
 
-    frontend_url: str
-
     WARSAW: ZoneInfo = ZoneInfo("Europe/Warsaw")
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore", frozen=True)

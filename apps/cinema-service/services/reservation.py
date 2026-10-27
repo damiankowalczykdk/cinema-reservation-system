@@ -107,15 +107,20 @@ class ReservationService:
 
         reservations = await self.reservation_repository.add_all(reservations)
 
+        await self.reservation_repository.commit()
+
         recipient_email = create_reservation.guest_email or user_email
+        expires_at = reservations[0].expires_at.isoformat()
 
-        await self.temporal_client.start_workflow(
-            "ReservationWorkflow",
-            id=f"reservations-{group_id}",
-            args=[group_id, settings.hold_minutes, recipient_email],
-            task_queue=settings.task_queue,
-        )
-
+        try:
+            await self.temporal_client.start_workflow(
+                "ReservationWorkflow",
+                id=f"reservations-{group_id}",
+                args=[group_id, expires_at, recipient_email],
+                task_queue=settings.task_queue,
+            )
+        except RPCError:
+            logger.warning(f"Workflow not started for reservation {group_id}")
         return reservations
 
     async def get_reservation_summary(self, group_id: int):
@@ -152,7 +157,7 @@ class ReservationService:
             raise NotFoundException("Invalid ticket code")
 
         expected = self._sign(group_id)
-        res = hmac.compare_digest(signature.upper(), expected)
+        res = hmac.compare_digest(signature.upper().encode(), expected.encode())
         if not res:
             raise NotFoundException("Invalid ticket code")
 
@@ -160,7 +165,11 @@ class ReservationService:
         if any(r.status != Status.CONFIRMED for r in reservations):
             raise ConflictException("Ticket not paid")
 
-        return await self.get_reservation_summary(group_id)
+        summary = await self.get_reservation_summary(group_id)
+        if summary.start_time + timedelta(hours=1) < datetime.now(UTC):
+            raise ConflictException("Ticket expired")
+
+        return summary
 
     async def get_reservations_by_group_id(
         self, group_id: int
@@ -203,14 +212,7 @@ class ReservationService:
 
         await self.reservation_repository.add_all(list(reservations))
 
-        try:
-            await self.temporal_client.get_workflow_handle(
-                f"reservations-{group_id}"
-            ).signal("extended", reservations[0].expires_at.isoformat())
-        except RPCError:
-            logger.warning(
-                f"Workflow for group {group_id} not running, skipping extend signal”"
-            )
+        await self.reservation_repository.commit()
 
         return reservations[0].expires_at
 
@@ -250,20 +252,17 @@ class ReservationService:
 
         res = await self.reservation_repository.add_all(list(reservations))
 
-        try:
-            await self.temporal_client.get_workflow_handle(
-                f"reservations-{group_id}"
-            ).cancel()
-        except RPCError:
-            logger.warning(
-                f"Workflow for group {group_id} not running, skipping cancel"
-            )
+        await self.reservation_repository.commit()
+
+        await self._cancel_workflow(group_id)
 
         return res
 
     async def delete_reservation_group(self, group_id: int) -> None:
         await self._check_group(group_id)
         await self.reservation_repository.delete_reservation_group(group_id)
+        await self.reservation_repository.commit()
+        await self._cancel_workflow(group_id)
 
     async def get_occupied_seats(self, screening_id: int) -> OccupiedSeatsRead:
         screening = await self.screening_repository.get_by_id(screening_id)
@@ -294,15 +293,21 @@ class ReservationService:
 
         await self.reservation_repository.add_all(list(reservations))
 
+    async def _cancel_workflow(self, group_id: int) -> None:
+        try:
+            await self.temporal_client.get_workflow_handle(
+                f"reservations-{group_id}"
+            ).cancel()
+        except RPCError:
+            logger.warning(f"Workflow for group {group_id} not running")
+
     def _sign(self, group_id: int) -> str:
         signature = hmac.new(
             settings.ticket_secret.encode("utf-8"),
             str(group_id).encode("utf-8"),
             hashlib.sha256,
         ).hexdigest()
-        ticket_code = f"{signature[:8].upper()}"
-
-        return ticket_code
+        return signature[:16].upper()
 
     async def _check_group(
         self, group_id: int, lock: bool = False

@@ -15,12 +15,14 @@ class ReservationActivities:
         self.client = client
 
     @activity.defn
-    async def expire_reservation(self, group_id: int) -> None:
+    async def expire_reservation(self, group_id: int) -> dict[str, str]:
         resp = await self.client.request(
             "POST", f"{settings.cinema_service_url}/reservation/{group_id}/expire"
         )
 
         resp.raise_for_status()
+
+        return resp.json()
 
 
 class EmailActivities:
