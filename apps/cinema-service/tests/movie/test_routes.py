@@ -1,8 +1,4 @@
-import datetime
-
 from httpx import AsyncClient
-
-from domain.schemas.movie import UpdateMovie
 
 
 async def test_create_movie_success(client: AsyncClient) -> None:
@@ -20,6 +16,7 @@ async def test_create_movie_success(client: AsyncClient) -> None:
     assert response.status_code == 201
     assert data["id"] == 1
     assert data["title"] == "Movie"
+
 
 async def test_get_movie_by_id_success(client: AsyncClient) -> None:
     payload = {
@@ -54,12 +51,13 @@ async def test_get_movie_by_title_success(client: AsyncClient) -> None:
     response_movie = await client.post("/movie/", json=payload)
     cinema_title = response_movie.json()["title"]
 
-    response = await client.get(f"/movie/", params={"title": cinema_title})
+    response = await client.get("/movie/", params={"title": cinema_title})
 
     assert response.status_code == 200
 
     data = response.json()[0]
     assert data["description"] == "Movie description"
+
 
 async def test_update_movie_success(client: AsyncClient) -> None:
     payload = {
@@ -73,9 +71,7 @@ async def test_update_movie_success(client: AsyncClient) -> None:
     response_movie = await client.post("/movie/", json=payload)
     movie_id = response_movie.json()["id"]
 
-    update_movie = {
-        "description": "NEW Movie description"
-    }
+    update_movie = {"description": "NEW Movie description"}
 
     await client.patch(f"/movie/{movie_id}", json=update_movie)
 
@@ -101,5 +97,3 @@ async def test_delete_movie_success(client: AsyncClient) -> None:
     response = await client.delete(f"/movie/{movie_id}")
 
     assert response.status_code == 204
-
-

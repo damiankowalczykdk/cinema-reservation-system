@@ -165,7 +165,7 @@ function Schedule() {
                       {c.screenings.map((s) => (
                         <Link key={s.screening_id} className="showtime" to={`/screenings/${s.screening_id}`}>
                           <span className="showtime__time">{formatTime(s.start_time)}</span>
-                          <span className="showtime__price">{formatPrice(s.price)}</span>
+                          <span className="showtime__price">{formatPrice(s.price, s.currency)}</span>
                         </Link>
                       ))}
                     </div>

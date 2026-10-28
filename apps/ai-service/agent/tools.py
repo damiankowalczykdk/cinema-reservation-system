@@ -32,20 +32,20 @@ TOOLS: list[FunctionToolParam] = [
             "properties": {
                 "city": {
                     "type": "string",
-                    "description": "Nazwa miasta w mianowniku, z polskimi znakami, np. Wrocław, Łódź, Kraków. Popraw pisownię, jeśli użytkownik pominął polskie znaki."
+                    "description": "Nazwa miasta w mianowniku, z polskimi znakami, np. Wrocław, Łódź, Kraków. Popraw pisownię, jeśli użytkownik pominął polskie znaki.",
                 },
                 "genre": {
                     "type": ["string", "null"],
-                    "enum": [g.value for g in Genre] + [None]
+                    "enum": [g.value for g in Genre] + [None],
                 },
                 "after": {
                     "type": ["string", "null"],
-                    "description": "Najwcześniejsza data i godzina seansu w formacie ISO 8601. Null, jeśli użytkownik nie podał ani dnia, ani pory. Gdy pyta o konkretny dzień, after to początek tego dnia, np. dla 13 października: 2026-10-13T00:00:00+02:00."
+                    "description": "Najwcześniejsza data i godzina seansu w formacie ISO 8601. Null, jeśli użytkownik nie podał ani dnia, ani pory. Gdy pyta o konkretny dzień, after to początek tego dnia, np. dla 13 października: 2026-10-13T00:00:00+02:00.",
                 },
                 "before": {
                     "type": ["string", "null"],
-                    "description": "Najpóźniejsza data i godzina seansu w formacie ISO 8601. Null, jeśli użytkownik nie podał ani dnia, ani pory. Gdy pyta o konkretny dzień, before to początek NASTĘPNEGO dnia, np. dla 13 października: 2026-10-14T00:00:00+02:00."
-                }
+                    "description": "Najpóźniejsza data i godzina seansu w formacie ISO 8601. Null, jeśli użytkownik nie podał ani dnia, ani pory. Gdy pyta o konkretny dzień, before to początek NASTĘPNEGO dnia, np. dla 13 października: 2026-10-14T00:00:00+02:00.",
+                },
             },
             "required": [
                 "city",
@@ -53,10 +53,10 @@ TOOLS: list[FunctionToolParam] = [
                 "after",
                 "before",
             ],
-            "additionalProperties": False
-        }
+            "additionalProperties": False,
+        },
     },
-{
+    {
         "type": "function",
         "name": "get_seats_map",
         "description": "Zwraca układ sali i zajęte miejsca dla wybranego seansu. Wywołaj po wyborze seansu przez użytkownika, zanim zapytasz o miejsca.",
@@ -68,13 +68,11 @@ TOOLS: list[FunctionToolParam] = [
                     "type": "integer",
                 }
             },
-            "required": [
-                "screening_id"
-            ],
-            "additionalProperties": False
-        }
+            "required": ["screening_id"],
+            "additionalProperties": False,
+        },
     },
-{
+    {
         "type": "function",
         "name": "create_reservation",
         "description": "Sprawdza wolne czy miejsca są wolne natepnie robi rezerwację",
@@ -82,36 +80,29 @@ TOOLS: list[FunctionToolParam] = [
         "parameters": {
             "type": "object",
             "properties": {
-                "screening_id": {
-                    "type": "integer"
-                },
-                 "seats": {
+                "screening_id": {"type": "integer"},
+                "seats": {
                     "type": "array",
                     "minItems": 1,
                     "items": {
                         "type": "object",
                         "properties": {
                             "row": {"type": "integer"},
-                            "seat": {"type": "integer"}
+                            "seat": {"type": "integer"},
                         },
                         "required": ["row", "seat"],
-                        "additionalProperties": False
-                    }
+                        "additionalProperties": False,
+                    },
                 },
                 "guest_email": {
                     "type": ["string", "null"],
                 },
                 "guest_name": {
                     "type": ["string", "null"],
-                }
+                },
             },
-            "required": [
-                "screening_id",
-                "seats",
-                "guest_email",
-                "guest_name"
-            ],
-            "additionalProperties": False
-        }
-    }
+            "required": ["screening_id", "seats", "guest_email", "guest_name"],
+            "additionalProperties": False,
+        },
+    },
 ]

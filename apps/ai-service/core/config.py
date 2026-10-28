@@ -23,11 +23,7 @@ class Settings(BaseSettings):
     conversation_ttl_seconds: int = 3600
     max_history_items: int = 50
 
+    model_config = SettingsConfigDict(env_file=".env", extra="ignore", frozen=True)
 
-    model_config = SettingsConfigDict(
-        env_file=".env",
-        extra="ignore",
-        frozen=True
-    )
 
-settings = Settings() # type: ignore
+settings = Settings()  # type: ignore

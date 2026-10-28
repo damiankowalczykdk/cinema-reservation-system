@@ -141,8 +141,8 @@ const translations = {
 
     'confirm.title': "You're all set!",
     'confirm.body': "Thanks for your booking. We're confirming your payment with Stripe — it usually takes just a few seconds.",
-    'confirm.bodyUser': 'Your tickets will appear in My tickets.',
-    'confirm.bodyGuest': 'Your confirmation will arrive by email.',
+    'confirm.bodyUser': 'We will email your tickets and you will also find them in My tickets.',
+    'confirm.bodyGuest': 'We will email your tickets once the payment is confirmed.',
     'confirm.viewTickets': 'View my tickets',
     'confirm.browseMore': 'Browse more movies',
 
@@ -306,8 +306,8 @@ const translations = {
 
     'confirm.title': 'Gotowe!',
     'confirm.body': 'Dziękujemy za rezerwację. Potwierdzamy płatność w Stripe — zwykle trwa to kilka sekund.',
-    'confirm.bodyUser': 'Bilety pojawią się w zakładce Moje bilety.',
-    'confirm.bodyGuest': 'Potwierdzenie wyślemy e-mailem.',
+    'confirm.bodyUser': 'Bilety wyślemy e-mailem, znajdziesz je też w zakładce Moje bilety.',
+    'confirm.bodyGuest': 'Bilety wyślemy e-mailem po potwierdzeniu płatności.',
     'confirm.viewTickets': 'Zobacz moje bilety',
     'confirm.browseMore': 'Zobacz więcej filmów',
 

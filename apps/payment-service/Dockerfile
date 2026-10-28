@@ -42,4 +42,4 @@ USER appuser
 EXPOSE 8002
 
 
-CMD ["fastapi", "run", "main.py", "--host", "0.0.0.0", "--port", "8002", "--reload"]
+CMD ["fastapi", "run", "main.py", "--host", "0.0.0.0", "--port", "8002"]

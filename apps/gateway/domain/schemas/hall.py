@@ -7,6 +7,7 @@ class CreateHall(BaseModel):
     rows: int
     seats_per_row: int
 
+
 class UpdateHall(BaseModel):
     name: str | None = None
     rows: int | None = None

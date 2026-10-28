@@ -1,12 +1,9 @@
-from datetime import datetime, date, timedelta, timezone
+from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 
-from sqlalchemy.ext.asyncio import AsyncSession
-
-from core.config import database_settings
 from domain.models.cinema import Cinema
 from domain.models.hall import Hall
-from domain.models.movie import Movie, Genre
+from domain.models.movie import Genre, Movie
 from domain.models.reservation import Reservation, Status
 from domain.models.screening import Screening
 from repositories.cinema import CinemaRepository
@@ -14,7 +11,7 @@ from repositories.hall import HallRepository
 from repositories.movie import MovieRepository
 from repositories.reservation import ReservationRepository
 from repositories.screening import ScreeningRepository
-from tests.reservation.test_service import reservation_service
+from sqlalchemy.ext.asyncio import AsyncSession
 
 
 async def test_get_user_by_id(db_session: AsyncSession) -> None:
@@ -25,21 +22,12 @@ async def test_get_user_by_id(db_session: AsyncSession) -> None:
     cinema_repo = CinemaRepository(db_session)
 
     cinema = Cinema(
-        id=1,
-        name="Test Cinema",
-        city="Test City",
-        address="123 Main Street"
+        id=1, name="Test Cinema", city="Test City", address="123 Main Street"
     )
 
     await cinema_repo.add(cinema)
 
-    hall = Hall(
-        id=1,
-        cinema_id=1,
-        name="Test Hall",
-        rows=10,
-        seats_per_row=10
-    )
+    hall = Hall(id=1, cinema_id=1, name="Test Hall", rows=10, seats_per_row=10)
 
     await hall_repo.add(hall)
 
@@ -49,7 +37,7 @@ async def test_get_user_by_id(db_session: AsyncSession) -> None:
         description="Movie description",
         duration_minutes=60,
         genre=Genre.CRIME,
-        release_date=date(2026, 8, 23)
+        release_date=date(2026, 8, 23),
     )
 
     await movie_repo.add(movie)
@@ -59,7 +47,7 @@ async def test_get_user_by_id(db_session: AsyncSession) -> None:
         movie_id=1,
         hall_id=1,
         start_time=datetime(2026, 8, 26, 18, 0, 0),
-        price=Decimal("19.99")
+        price=Decimal("19.99"),
     )
     await screening_repo.add(screening)
 
@@ -71,7 +59,7 @@ async def test_get_user_by_id(db_session: AsyncSession) -> None:
         seat=1,
         status=Status.PENDING,
         price_paid=Decimal("19.99"),
-        expires_at=datetime(2026, 8, 26, 18, 0, 0)
+        expires_at=datetime(2026, 8, 26, 18, 0, 0),
     )
 
     await reservation_repo.add_all([reservation])
@@ -81,6 +69,7 @@ async def test_get_user_by_id(db_session: AsyncSession) -> None:
     assert result[0].row == 1
     assert result[0].seat == 1
 
+
 async def test_get_active_reservation_for_screening(db_session: AsyncSession) -> None:
     reservation_repo = ReservationRepository(db_session)
     screening_repo = ScreeningRepository(db_session)
@@ -89,21 +78,12 @@ async def test_get_active_reservation_for_screening(db_session: AsyncSession) ->
     cinema_repo = CinemaRepository(db_session)
 
     cinema = Cinema(
-        id=1,
-        name="Test Cinema",
-        city="Test City",
-        address="123 Main Street"
+        id=1, name="Test Cinema", city="Test City", address="123 Main Street"
     )
 
     await cinema_repo.add(cinema)
 
-    hall = Hall(
-        id=1,
-        cinema_id=1,
-        name="Test Hall",
-        rows=10,
-        seats_per_row=10
-    )
+    hall = Hall(id=1, cinema_id=1, name="Test Hall", rows=10, seats_per_row=10)
 
     await hall_repo.add(hall)
 
@@ -113,7 +93,7 @@ async def test_get_active_reservation_for_screening(db_session: AsyncSession) ->
         description="Movie description",
         duration_minutes=60,
         genre=Genre.CRIME,
-        release_date=date(2026, 8, 23)
+        release_date=date(2026, 8, 23),
     )
 
     await movie_repo.add(movie)
@@ -123,7 +103,7 @@ async def test_get_active_reservation_for_screening(db_session: AsyncSession) ->
         movie_id=1,
         hall_id=1,
         start_time=datetime(2026, 8, 26, 18, 0, 0),
-        price=Decimal("19.99")
+        price=Decimal("19.99"),
     )
     await screening_repo.add(screening)
 
@@ -136,8 +116,8 @@ async def test_get_active_reservation_for_screening(db_session: AsyncSession) ->
         seat=1,
         status=Status.PENDING,
         price_paid=Decimal("19.99"),
-        expires_at=datetime.now(timezone.utc) + timedelta(minutes=15),
-        created_at=datetime.now(timezone.utc)
+        expires_at=datetime.now(UTC) + timedelta(minutes=15),
+        created_at=datetime.now(UTC),
     )
 
     await reservation_repo.add_all([reservation])
@@ -148,4 +128,7 @@ async def test_get_active_reservation_for_screening(db_session: AsyncSession) ->
 
     assert result[0].status == Status.PENDING
 
-    assert repr(result) == f"[< Reservation 1 screening 1 row 1 seat 1 status Status.PENDING price 19.99 >]"
+    assert (
+        repr(result)
+        == "[< Reservation 1 screening 1 row 1 seat 1 status Status.PENDING price 19.99 >]"
+    )

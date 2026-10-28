@@ -21,18 +21,12 @@ class Auth0Settings(BaseSettings):
     payment_service_url: str
     ai_service_url: str
 
-    default_currency: str = "usd"
-
-    model_config = SettingsConfigDict(
-        env_file=".env",
-        extra="ignore",
-        frozen=True
-    )
+    model_config = SettingsConfigDict(env_file=".env", extra="ignore", frozen=True)
 
 
 @lru_cache
 def get_settings() -> Auth0Settings:
-    return Auth0Settings() #type: ignore
+    return Auth0Settings()  # type: ignore
+
 
 settings = get_settings()
-

@@ -1,13 +1,14 @@
-from typing import AsyncGenerator
-import httpx
-import pytest_asyncio
-from httpx import AsyncClient, ASGITransport
+from collections.abc import AsyncGenerator
 
-from core.security import get_current_user
-from core.config import get_settings, Auth0Settings
-from domain.schemas.auth import TokenPayload
-from main import app
+import httpx
 import pytest
+import pytest_asyncio
+from core.config import Auth0Settings, get_settings
+from core.security import get_current_user
+from domain.schemas.auth import TokenPayload
+from httpx import ASGITransport, AsyncClient
+from main import app
+
 
 @pytest.fixture(scope="session")
 def test_settings() -> Auth0Settings:
@@ -15,36 +16,55 @@ def test_settings() -> Auth0Settings:
         cinema_service_url="http://mock-cinema-service",
         payment_service_url="http://mock-payment-service",
         ai_service_url="http://mock-ai-service",
-        http_timeout=5
-    ) #type: ignore
+        http_timeout=5,
+    )  # type: ignore
+
 
 @pytest_asyncio.fixture
-async def client(test_settings: Auth0Settings) -> AsyncGenerator[AsyncClient, None]:
+async def client(test_settings: Auth0Settings) -> AsyncGenerator[AsyncClient]:
     app.dependency_overrides[get_settings] = lambda: test_settings
     app.state.http_client = httpx.AsyncClient()
 
-    async with AsyncClient(transport=ASGITransport(app=app,  raise_app_exceptions=False), base_url="http://test") as ac:
+    async with AsyncClient(
+        transport=ASGITransport(app=app, raise_app_exceptions=False),
+        base_url="http://test",
+    ) as ac:
         yield ac
 
     app.dependency_overrides.clear()
 
 
 @pytest_asyncio.fixture
-async def admin_client(test_settings: Auth0Settings) -> AsyncGenerator[AsyncClient, None]:
-    app.dependency_overrides[get_current_user] = lambda: TokenPayload(sub="test123", roles=["admin"]) # type: ignore
+async def admin_client(
+    test_settings: Auth0Settings,
+) -> AsyncGenerator[AsyncClient]:
+    app.dependency_overrides[get_current_user] = lambda: TokenPayload(
+        sub="test123", roles=["admin"]
+    )  # type: ignore
     app.state.http_client = httpx.AsyncClient()
 
-    async with AsyncClient(transport=ASGITransport(app=app,  raise_app_exceptions=False), base_url="http://test") as ac:
+    async with AsyncClient(
+        transport=ASGITransport(app=app, raise_app_exceptions=False),
+        base_url="http://test",
+    ) as ac:
         yield ac
 
     app.dependency_overrides.clear()
 
+
 @pytest_asyncio.fixture
-async def user_client(test_settings: Auth0Settings) -> AsyncGenerator[AsyncClient, None]:
-    app.dependency_overrides[get_current_user] = lambda: TokenPayload(sub="test123user", roles=["user"]) # type: ignore
+async def user_client(
+    test_settings: Auth0Settings,
+) -> AsyncGenerator[AsyncClient]:
+    app.dependency_overrides[get_current_user] = lambda: TokenPayload(
+        sub="test123user", roles=["user"], email="test@example.com"
+    )  # type: ignore
     app.state.http_client = httpx.AsyncClient()
 
-    async with AsyncClient(transport=ASGITransport(app=app,  raise_app_exceptions=False), base_url="http://test") as ac:
+    async with AsyncClient(
+        transport=ASGITransport(app=app, raise_app_exceptions=False),
+        base_url="http://test",
+    ) as ac:
         yield ac
 
     app.dependency_overrides.clear()

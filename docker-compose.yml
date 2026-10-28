@@ -29,15 +29,20 @@ services:
       context: ./apps/cinema-service
       dockerfile: Dockerfile
     restart: always
+    command: ["fastapi", "run", "main.py", "--host", "0.0.0.0", "--port", "8001", "--reload"]
     depends_on:
       postgres:
         condition: service_healthy
+      temporal:
+        condition: service_started
+
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_HOST: ${POSTGRES_HOST}
       POSTGRES_PORT: ${POSTGRES_PORT}
       POSTGRES_DB: ${POSTGRES_DB}
+      TEMPORAL_ADDRESS: ${TEMPORAL_ADDRESS}
 
     volumes:
       - ./apps/cinema-service:/app
@@ -48,6 +53,7 @@ services:
       context: ./apps/ai-service
       dockerfile: Dockerfile
     restart: always
+    command: ["fastapi", "run", "main.py", "--host", "0.0.0.0", "--port", "8003", "--reload"]
     depends_on:
       - cinema-service
       - redis
@@ -61,20 +67,49 @@ services:
     networks:
       - backend
 
+  worker-service:
+    build:
+      context: ./apps/worker-service
+      dockerfile: Dockerfile
+    restart: always
+    command: ["watchfiles", "python main.py"]
+    depends_on:
+      - temporal
+      - cinema-service
+      - mailpit
+    environment:
+      CINEMA_SERVICE_URL: ${CINEMA_SERVICE_URL}
+      TEMPORAL_ADDRESS: ${TEMPORAL_ADDRESS}
+      SMTP_HOST: ${SMTP_HOST}
+      SMTP_PORT: ${SMTP_PORT}
+      SMTP_SENDER: ${SMTP_SENDER}
+
+    volumes:
+      - ./apps/worker-service:/app
+
+    networks:
+      - backend
+
   payment-service:
     build:
       context: ./apps/payment-service
       dockerfile: Dockerfile
     restart: always
+    command: ["fastapi", "run", "main.py", "--host", "0.0.0.0", "--port", "8002", "--reload"]
     depends_on:
       postgres:
         condition: service_healthy
+      temporal:
+        condition: service_started
+
     environment:
       POSTGRES_PAYMENT_USER: ${POSTGRES_PAYMENT_USER}
       POSTGRES_PAYMENT_PASSWORD: ${POSTGRES_PAYMENT_PASSWORD}
       POSTGRES_PAYMENT_HOST: ${POSTGRES_PAYMENT_HOST}
       POSTGRES_PAYMENT_PORT: ${POSTGRES_PAYMENT_PORT}
       POSTGRES_PAYMENT_DB: ${POSTGRES_PAYMENT_DB}
+
+      TEMPORAL_ADDRESS: ${TEMPORAL_ADDRESS}
 
     volumes:
       - ./apps/payment-service:/app
@@ -86,6 +121,7 @@ services:
       context: ./apps/gateway
       dockerfile: Dockerfile
     restart: always
+    command: ["fastapi", "run", "main.py", "--host", "0.0.0.0", "--port", "8000", "--reload"]
     depends_on:
       - cinema-service
       - ai-service
@@ -105,6 +141,7 @@ services:
 
   stripe-cli:
     image: stripe/stripe-cli:latest
+    restart: always
     command: listen --api-key ${STRIPE_SECRET_KEY} --all-snapshot --forward-to payment-service:8002/payment/webhook
     depends_on:
       - payment-service
@@ -117,18 +154,26 @@ services:
     networks:
       - backend
 
-  reservation_expirer:
-    image: curlimages/curl:latest
+
+  temporal:
+    image: temporalio/temporal
     restart: always
-    depends_on:
-      - cinema-service
-    entrypoint: ["/bin/sh", "-c"]
-    command:
-      - |
-        while true; do
-          curl -fsS -X POST http://cinema-service:8001/reservation/expire-stale || echo "expire-stale failed"
-          sleep 60
-        done
+    user: root
+    command: ["server", "start-dev", "--ip", "0.0.0.0", "--db-filename", "/data/temporal.db"]
+    volumes:
+      - temporal_data:/data
+    ports:
+      - "8233:8233"
+      - "7233:7233"
+    networks:
+      - backend
+
+  mailpit:
+    image: axllent/mailpit
+    restart: always
+    ports:
+      - "8025:8025"
+      - "1025:1025"
     networks:
       - backend
 
@@ -136,9 +181,8 @@ services:
 volumes:
   postgres_data:
   gateway:
+  temporal_data:
 
 
 networks:
   backend:
-
-

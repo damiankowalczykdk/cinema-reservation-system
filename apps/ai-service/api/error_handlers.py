@@ -1,15 +1,14 @@
+import logging
+
 from fastapi import FastAPI, Request, status
 from fastapi.exceptions import RequestValidationError
-from openai import APITimeoutError, APIConnectionError, APIStatusError
+from openai import APIConnectionError, APIStatusError, APITimeoutError
 from starlette.responses import JSONResponse
-
-import logging
 
 logger = logging.getLogger(__name__)
 
 
 def register_error_handlers(app: FastAPI):
-
     @app.exception_handler(APITimeoutError)
     async def api_timeout_error(_: Request, exc: APITimeoutError) -> JSONResponse:
         logger.exception("Request timed out", exc_info=exc)
@@ -18,8 +17,8 @@ def register_error_handlers(app: FastAPI):
             status_code=status.HTTP_504_GATEWAY_TIMEOUT,
             content={
                 "error": "LLM_TIMEOUT",
-                "message": "Asystent nie zdążył odpowiedzieć. Spróbuj ponownie."
-            }
+                "message": "Asystent nie zdążył odpowiedzieć. Spróbuj ponownie.",
+            },
         )
 
     @app.exception_handler(APIConnectionError)
@@ -30,8 +29,8 @@ def register_error_handlers(app: FastAPI):
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             content={
                 "error": "LLM_UNAVAILABLE",
-                "message": "Brak połączenia z asystentem. Spróbuj ponownie."
-            }
+                "message": "Brak połączenia z asystentem. Spróbuj ponownie.",
+            },
         )
 
     @app.exception_handler(APIStatusError)
@@ -42,12 +41,14 @@ def register_error_handlers(app: FastAPI):
             status_code=status.HTTP_502_BAD_GATEWAY,
             content={
                 "error": "LLM_ERROR",
-                "message": "Asystent jest chwilowo niedostępny."
-            }
+                "message": "Asystent jest chwilowo niedostępny.",
+            },
         )
 
     @app.exception_handler(RequestValidationError)
-    async def validation_exception_handler(_: Request, exc: RequestValidationError) -> JSONResponse:
+    async def validation_exception_handler(
+        _: Request, exc: RequestValidationError
+    ) -> JSONResponse:
         details = [
             f"{'.'.join(str(x) for x in err['loc'])}: {err['msg']}"
             for err in exc.errors()
@@ -55,10 +56,7 @@ def register_error_handlers(app: FastAPI):
 
         return JSONResponse(
             status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
-            content={
-                "error": "VALIDATION_ERROR",
-                "message": details
-            }
+            content={"error": "VALIDATION_ERROR", "message": details},
         )
 
     @app.exception_handler(Exception)
@@ -69,7 +67,6 @@ def register_error_handlers(app: FastAPI):
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             content={
                 "error": "INTERNAL_SERVER_ERROR",
-                "message": "Internal server error"
-            }
+                "message": "Internal server error",
+            },
         )
-

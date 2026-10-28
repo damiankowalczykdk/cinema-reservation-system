@@ -187,7 +187,7 @@ function SeatSelection() {
           </div>
           <div className="summary__row">
             <span className="muted">{t('seats.ticket')}</span>
-            <span>{formatPrice(seatPrice)}</span>
+            <span>{formatPrice(seatPrice, screening.currency)}</span>
           </div>
 
           <div className="summary__row" style={{ marginBottom: 4 }}>
@@ -210,7 +210,7 @@ function SeatSelection() {
             <>
               <div className="summary__total">
                 <span>{t('common.total')}</span>
-                <strong>{formatPrice(total)}</strong>
+                <strong>{formatPrice(total, screening.currency)}</strong>
               </div>
               <button className="btn--lg btn--block" onClick={() => payFor(booking[0].group_id)} disabled={paying}>
                 {paying ? t('seats.redirecting') : t('seats.payNow')}
@@ -246,7 +246,7 @@ function SeatSelection() {
 
               <div className="summary__total">
                 <span>{t('common.total')}</span>
-                <strong>{formatPrice(total)}</strong>
+                <strong>{formatPrice(total, screening.currency)}</strong>
               </div>
 
               <button

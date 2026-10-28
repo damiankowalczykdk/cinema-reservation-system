@@ -1,9 +1,11 @@
-from datetime import datetime, timezone, date
+from datetime import UTC, date, datetime
 from enum import Enum
-from sqlalchemy import Integer, String, DateTime, Date, UniqueConstraint
-from sqlalchemy.orm import Mapped, mapped_column
-from sqlalchemy import Enum as SaEnum
+
 from core.database import Base
+from sqlalchemy import Date, DateTime, Integer, String, UniqueConstraint
+from sqlalchemy import Enum as SaEnum
+from sqlalchemy.orm import Mapped, mapped_column
+
 
 class Genre(Enum):
     ACTION = "action"
@@ -22,8 +24,9 @@ class Genre(Enum):
     FAMILY = "family"
     WAR = "war"
 
+
 class Movie(Base):
-    __tablename__ = 'movies'
+    __tablename__ = "movies"
     __table_args__ = (
         UniqueConstraint("title", "release_date", name="uq_movie_title_release_date"),
     )
@@ -37,18 +40,21 @@ class Movie(Base):
     poster_path: Mapped[str | None] = mapped_column(String(255), nullable=True)
     trailer_key: Mapped[str | None] = mapped_column(String(255), nullable=True)
 
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(tz=timezone.utc))
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=lambda: datetime.now(tz=UTC)
+    )
 
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
-        default=lambda: datetime.now(tz=timezone.utc),
-        onupdate=lambda: datetime.now(tz=timezone.utc)
+        default=lambda: datetime.now(tz=UTC),
+        onupdate=lambda: datetime.now(tz=UTC),
     )
 
     def __repr__(self) -> str:
-        return (f"< Movie {self.id} title: {self.title} description: {self.description} duration: {self.duration_minutes}"
-                f" genre: {self.genre} release_date: {self.release_date} >")
-
+        return (
+            f"< Movie {self.id} title: {self.title} description: {self.description} duration: {self.duration_minutes}"
+            f" genre: {self.genre} release_date: {self.release_date} >"
+        )
 
     def update(self, update_data: dict) -> None:
         for key, value in update_data.items():

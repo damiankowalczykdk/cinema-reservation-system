@@ -1,23 +1,25 @@
+from collections.abc import Sequence
 from datetime import timedelta
-from typing import Sequence
-from sqlalchemy import Row, RowMapping
-from core.exceptions import NotFoundException, ConflictException
+
+from core.exceptions import ConflictException, NotFoundException
 from domain.models.hall import Hall
 from domain.models.movie import Movie
 from domain.models.screening import Screening
-from domain.schemas.screening import CreateScreening, UpdateScreening, SearchScreening
+from domain.schemas.screening import CreateScreening, SearchScreening, UpdateScreening
 from repositories.cinema import CinemaRepository
 from repositories.hall import HallRepository
 from repositories.movie import MovieRepository
 from repositories.screening import ScreeningRepository
+from sqlalchemy import RowMapping
 
 
 class ScreeningService:
-    def __init__(self,
-                 screening_repository: ScreeningRepository,
-                 movie_repository: MovieRepository,
-                 hall_repository: HallRepository,
-                 cinema_repository: CinemaRepository
+    def __init__(
+        self,
+        screening_repository: ScreeningRepository,
+        movie_repository: MovieRepository,
+        hall_repository: HallRepository,
+        cinema_repository: CinemaRepository,
     ) -> None:
         self.screening_repository = screening_repository
         self.movie_repository = movie_repository
@@ -29,12 +31,12 @@ class ScreeningService:
 
         await self._check_hall_by_id(create_screening.hall_id)
 
-        end_time = create_screening.start_time + timedelta(minutes=movie.duration_minutes)
+        end_time = create_screening.start_time + timedelta(
+            minutes=movie.duration_minutes
+        )
 
         overlapping = await self.screening_repository.get_overlapping_screenings(
-                create_screening.hall_id,
-                create_screening.start_time,
-                end_time
+            create_screening.hall_id, create_screening.start_time, end_time
         )
         if overlapping:
             raise ConflictException("Hall already has a screening at this time")
@@ -52,12 +54,26 @@ class ScreeningService:
         screening = await self._check_screening_by_id(screening_id)
         return screening
 
-    async def update_screening(self, screening_id: int, update_screening: UpdateScreening) -> Screening:
+    async def update_screening(
+        self, screening_id: int, update_screening: UpdateScreening
+    ) -> Screening:
         screening = await self._check_screening_by_id(screening_id)
 
-        movie_id = update_screening.movie_id if update_screening.movie_id is not None else screening.movie_id
-        hall_id = update_screening.hall_id if update_screening.hall_id is not None else screening.hall_id
-        start_time = update_screening.start_time if update_screening.start_time is not None else screening.start_time
+        movie_id = (
+            update_screening.movie_id
+            if update_screening.movie_id is not None
+            else screening.movie_id
+        )
+        hall_id = (
+            update_screening.hall_id
+            if update_screening.hall_id is not None
+            else screening.hall_id
+        )
+        start_time = (
+            update_screening.start_time
+            if update_screening.start_time is not None
+            else screening.start_time
+        )
 
         movie = await self._check_movie_by_id(movie_id)
 
@@ -65,31 +81,31 @@ class ScreeningService:
 
         end_time = start_time + timedelta(minutes=movie.duration_minutes)
 
-        overlapping = await self.screening_repository.get_overlapping_screenings(hall_id, start_time, end_time)
+        overlapping = await self.screening_repository.get_overlapping_screenings(
+            hall_id, start_time, end_time
+        )
         overlapping = [s for s in overlapping if s.id != screening_id]
         if overlapping:
             raise ConflictException("Hall already has a screening at this time")
 
-        screening.update(update_data={
-            "movie_id": update_screening.movie_id,
-            "hall_id": update_screening.hall_id,
-            "start_time": update_screening.start_time,
-            "price": update_screening.price,
-        })
+        screening.update(
+            update_data={
+                "movie_id": update_screening.movie_id,
+                "hall_id": update_screening.hall_id,
+                "start_time": update_screening.start_time,
+                "price": update_screening.price,
+            }
+        )
 
         return await self.screening_repository.add(screening)
-
 
     async def delete_screening_by_id(self, screening_id: int) -> None:
         await self._check_screening_by_id(screening_id)
         await self.screening_repository.delete_by_id(screening_id)
 
-
     async def search_screening(
-            self,
-            search_screening: SearchScreening
+        self, search_screening: SearchScreening
     ) -> Sequence[RowMapping]:
-
         if search_screening.movie_id is not None:
             await self._check_movie_by_id(search_screening.movie_id)
 
@@ -102,12 +118,10 @@ class ScreeningService:
             search_screening.date_from,
             search_screening.date_to,
             search_screening.city,
-            search_screening.genre
+            search_screening.genre,
         )
 
         return screenings
-
-
 
     async def _check_screening_by_id(self, screening_id: int) -> Screening:
         screening = await self.screening_repository.get_by_id(screening_id)

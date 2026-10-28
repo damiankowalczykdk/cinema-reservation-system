@@ -1,13 +1,13 @@
-from datetime import datetime
-from typing import Sequence
-
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func, RowMapping
+from collections.abc import Sequence
+from datetime import UTC, datetime
 
 from domain.models.cinema import Cinema
 from domain.models.hall import Hall
-from domain.models.movie import Movie, Genre
+from domain.models.movie import Genre, Movie
 from domain.models.screening import Screening
+from sqlalchemy import RowMapping, func, select
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from repositories.generic import GenericRepository
 
 
@@ -16,9 +16,11 @@ class ScreeningRepository(GenericRepository[Screening]):
         super().__init__(session, Screening)
 
     async def get_overlapping_screenings(
-            self, hall_id: int, start_time: datetime, end_time: datetime
+        self, hall_id: int, start_time: datetime, end_time: datetime
     ) -> Sequence[Screening]:
-        existing_end_time = Screening.start_time + func.make_interval(0, 0, 0, 0, 0, Movie.duration_minutes)
+        existing_end_time = Screening.start_time + func.make_interval(
+            0, 0, 0, 0, 0, Movie.duration_minutes
+        )
 
         stmt = (
             select(Screening)
@@ -32,19 +34,16 @@ class ScreeningRepository(GenericRepository[Screening]):
         result = await self.session.execute(stmt)
         return result.scalars().all()
 
-
     async def get_search_screenings(
-            self,
-            movie_id: int | None,
-            cinema_id: int | None,
-            date_from: datetime | None,
-            date_to: datetime | None,
-            city: str | None,
-            genre: Genre | None
+        self,
+        movie_id: int | None,
+        cinema_id: int | None,
+        date_from: datetime | None,
+        date_to: datetime | None,
+        city: str | None,
+        genre: Genre | None,
     ) -> Sequence[RowMapping]:
-
-        # conditions = [Screening.start_time > datetime.now(timezone.utc)]
-        conditions = []
+        conditions = [Screening.start_time > datetime.now(UTC)]
 
         if movie_id is not None:
             conditions.append(Screening.movie_id == movie_id)
@@ -76,17 +75,12 @@ class ScreeningRepository(GenericRepository[Screening]):
                 Screening.price.label("price"),
                 Movie.poster_path.label("poster_path"),
                 Cinema.city.label("city"),
-                Movie.genre.label("genre")
-
+                Movie.genre.label("genre"),
             )
             .join(Hall, Hall.id == Screening.hall_id)
-            .where(
-                *conditions
-            )
+            .where(*conditions)
             .join(Movie, Movie.id == Screening.movie_id)
             .join(Cinema, Cinema.id == Hall.cinema_id)
-
         )
         result = await self.session.execute(stmt)
         return result.mappings().all()
-

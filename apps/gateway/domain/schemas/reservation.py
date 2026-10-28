@@ -1,5 +1,7 @@
+from datetime import datetime
 from decimal import Decimal
 from enum import Enum
+
 from pydantic import BaseModel, ConfigDict, Field
 
 
@@ -8,9 +10,11 @@ class Status(Enum):
     CONFIRMED = "confirmed"
     CANCELLED = "cancelled"
 
+
 class SeatInput(BaseModel):
     row: int
     seat: int
+
 
 class CreateReservation(BaseModel):
     screening_id: int
@@ -18,12 +22,14 @@ class CreateReservation(BaseModel):
     guest_email: str | None = None
     guest_name: str | None = None
 
+
 class UpdateReservation(BaseModel):
     screening_id: int
     row: int
     seat: int
     guest_email: str | None = None
     guest_name: str | None = None
+
 
 class OccupiedSeatsRead(BaseModel):
     seats: list[tuple[int, int]]
@@ -44,3 +50,19 @@ class ReservationRead(BaseModel):
     seat: int
     status: Status
     price_paid: Decimal
+
+
+class ReservationSummaryRead(BaseModel):
+    group_id: int
+    movie_title: str
+    city: str
+    start_time: datetime
+    hall_name: str
+    seats: list[SeatInput]
+    total_price: Decimal
+    ticket_code: str
+    currency: str
+
+
+class VerifyTicket(BaseModel):
+    ticket_code: str
