@@ -1,0 +1,69 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}-app
+  namespace: {{ .Release.Namespace }}
+spec:
+  replicas: {{ .Values.replicas }}
+  selector:
+    matchLabels:
+      app: {{ .Release.Name }}-app
+  template:
+    metadata:
+      labels:
+        app: {{ .Release.Name }}-app
+    spec:
+         {{- if .Values.migrations }}
+      initContainers:
+        - name: {{ .Release.Name }}-migrations
+          image: {{ .Values.image }}
+          imagePullPolicy: Never
+          command: [ "alembic", "upgrade", "head" ]
+          envFrom:
+               {{- range .Values.configMaps }}
+            - configMapRef:
+                name: {{ . }}
+               {{- end }}
+               {{- range .Values.secrets }}
+            - secretRef:
+                name: {{ . }}
+               {{- end }}
+         {{- end }}
+      containers:
+        - name: {{ .Release.Name }}-app
+          image: {{ .Values.image }}
+          imagePullPolicy: Never
+          envFrom:
+            {{- range .Values.configMaps }}
+            - configMapRef:
+                name: {{ . }}
+                  {{- end }}
+                  {{- range .Values.secrets }}
+            - secretRef:
+                name: {{ . }}
+                  {{- end }}
+          resources:
+            requests:
+              cpu: "250m"
+              memory: "256Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+          {{- if .Values.http }}
+          ports:
+            - containerPort: {{ .Values.port }}
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: {{ .Values.port }}
+            initialDelaySeconds: 15
+            periodSeconds: 20
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: {{ .Values.port }}
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            failureThreshold: 3
+          {{- end }}
