@@ -1,0 +1,7 @@
+image: gateway:1.0
+port: 8000
+
+configMaps:
+  - gateway-configmap
+secrets:
+  - gateway-secret

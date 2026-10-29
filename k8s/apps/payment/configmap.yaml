@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: payment-configmap
+  namespace: cinema
+data:
+  FRONTEND_URL: http://localhost
+  CINEMA_SERVICE_URL: http://cinema-service:8001
+  HTTP_TIMEOUT: "10"
+  STRIPE_MIN_SESSION_MINUTES: "31"
+  TEMPORAL_ADDRESS: "temporal:7233"
+
+  POSTGRES_PAYMENT_USER: payment_user
+  POSTGRES_PAYMENT_HOST: postgres-payment
+  POSTGRES_PAYMENT_PORT: "5432"
+  POSTGRES_PAYMENT_DB: payment_db

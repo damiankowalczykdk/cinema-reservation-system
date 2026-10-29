@@ -1,0 +1,5 @@
+image: worker-service:1.0
+http: false
+
+configMaps:
+  - worker-configmap

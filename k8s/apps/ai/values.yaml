@@ -1,0 +1,7 @@
+image: ai-service:1.0
+port: 8003
+
+configMaps:
+  - ai-configmap
+secrets:
+  - ai-secret

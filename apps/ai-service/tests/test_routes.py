@@ -27,3 +27,11 @@ async def test_chat(
         "reservation": None,
         "seats_map_screening_id": None,
     }
+
+
+async def test_health(client: AsyncClient) -> None:
+    response = await client.get("/health")
+
+    data = response.json()
+    assert data["status"] == "ok"
+    assert data["message"] == "ai-service"

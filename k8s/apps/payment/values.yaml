@@ -1,0 +1,9 @@
+image: payment-service:1.0
+port: 8002
+
+configMaps:
+  - payment-configmap
+secrets:
+  - payment-secret
+
+migrations: true

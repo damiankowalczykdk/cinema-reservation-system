@@ -1,0 +1,11 @@
+image: cinema-service:1.1
+port: 8001
+
+configMaps:
+  - cinema-configmap
+  - postgres-configmap
+secrets:
+  - cinema-secret
+  - postgres-secret
+
+migrations: true

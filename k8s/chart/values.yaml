@@ -1,0 +1,9 @@
+replicas: 1
+image:
+port: 8000
+http: true
+
+configMaps: []
+secrets: []
+
+migrations: false
