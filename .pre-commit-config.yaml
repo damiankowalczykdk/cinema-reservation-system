@@ -11,6 +11,7 @@ repos:
     hooks:
       - id: check-yaml
         args: ["--allow-multiple-documents"]
+        exclude: ^k8s/chart/templates/
       - id: check-toml
       - id: end-of-file-fixer
       - id: trailing-whitespace
@@ -21,3 +22,10 @@ repos:
     rev: v8.30.0
     hooks:
       - id: gitleaks
+
+  - repo: https://github.com/compilerla/conventional-pre-commit
+    rev: v4.4.0
+    hooks:
+      - id: conventional-pre-commit
+        stages: [ commit-msg ]
+        args: [ ]

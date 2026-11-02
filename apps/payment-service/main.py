@@ -2,6 +2,7 @@ from contextlib import asynccontextmanager
 
 import httpx
 from api.error_handlers import register_error_handlers
+from api.routes.health import router as health_router
 from api.routes.payment import router as payment_router
 from core.config import settings
 from fastapi import FastAPI
@@ -23,3 +24,4 @@ app = FastAPI(lifespan=lifespan)
 
 register_error_handlers(app)
 app.include_router(payment_router)
+app.include_router(health_router)

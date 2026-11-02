@@ -3,6 +3,7 @@ from contextlib import asynccontextmanager
 import httpx
 from api.error_handlers import register_error_handlers
 from api.routes.assistant import router as assistant_router
+from api.routes.health import router as health_router
 from core.config import settings
 from fastapi import FastAPI
 from openai import AsyncOpenAI
@@ -29,5 +30,6 @@ async def lifespan(app: FastAPI):  # pragma: no cover.
 app = FastAPI(lifespan=lifespan)
 
 app.include_router(assistant_router)
+app.include_router(health_router)
 
 register_error_handlers(app)

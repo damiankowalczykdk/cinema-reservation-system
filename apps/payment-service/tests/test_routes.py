@@ -96,3 +96,11 @@ async def test_stripe_webhook(client: AsyncClient) -> None:
     )
 
     assert response.status_code == 200
+
+
+async def test_health(client: AsyncClient) -> None:
+    response = await client.get("/health")
+
+    data = response.json()
+    assert data["status"] == "ok"
+    assert data["message"] == "payment-service"

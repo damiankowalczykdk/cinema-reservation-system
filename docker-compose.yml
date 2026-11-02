@@ -24,6 +24,30 @@ services:
     networks:
       - backend
 
+  postgres_payment:
+    image: postgres:16-alpine
+    restart: always
+    volumes:
+      - postgres_payment_data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_USER: ${POSTGRES_PAYMENT_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PAYMENT_PASSWORD}
+      POSTGRES_HOST: ${POSTGRES_PAYMENT_HOST}
+      POSTGRES_PORT: ${POSTGRES_PAYMENT_PORT}
+      POSTGRES_DB: ${POSTGRES_PAYMENT_DB}
+
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB" ]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+    ports:
+      - "5433:5432"
+
+    networks:
+      - backend
+
   cinema-service:
     build:
       context: ./apps/cinema-service
@@ -97,7 +121,7 @@ services:
     restart: always
     command: ["fastapi", "run", "main.py", "--host", "0.0.0.0", "--port", "8002", "--reload"]
     depends_on:
-      postgres:
+      postgres_payment:
         condition: service_healthy
       temporal:
         condition: service_started
@@ -180,6 +204,7 @@ services:
 
 volumes:
   postgres_data:
+  postgres_payment_data:
   gateway:
   temporal_data:
 

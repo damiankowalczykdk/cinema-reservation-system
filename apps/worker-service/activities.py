@@ -81,7 +81,7 @@ class EmailActivities:
 
         await self._send(
             email=email,
-            subject="Confirmed your reservation",
+            subject="Your booking has been confirmed",
             body=body,
             qr_code=qr_code,
         )

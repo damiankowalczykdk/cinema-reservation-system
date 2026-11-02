@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cinema-configmap
+  namespace: cinema
+data:
+  HOLD_MINUTES: "15"
+  MAX_HOLD_MINUTES: "60"
+  EXTEND_MINUTES: "45"
+
+  TEMPORAL_ADDRESS: "temporal:7233"

@@ -11,7 +11,7 @@ async function parseErrorMessage(res) {
 }
 
 async function request(method, path, { params, body } = {}) {
-  const url = new URL(`${GATEWAY_URL}${path}`)
+  const url = new URL(`${GATEWAY_URL}${path}`, window.location.origin)
   if (params) {
     for (const [key, value] of Object.entries(params)) {
       if (value !== undefined && value !== null && value !== '') url.searchParams.set(key, value)
