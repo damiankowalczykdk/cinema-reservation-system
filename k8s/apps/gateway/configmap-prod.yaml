@@ -10,6 +10,8 @@ data:
   HTTP_TIMEOUT_HEALTH_CHECK: "5"
   HTTP_TIMEOUT_LLM: "150"
 
+  COOKIE_SECURE: "true"
+
   AUTH0_AUDIENCE: https://api.cinema-reservation-system.com
   AUTH0_CALLBACK_URL: https://13-140-206-134.sslip.io/api/auth/callback
   AUTH0_DOMAIN: cinema-reservation-system.eu.auth0.com
