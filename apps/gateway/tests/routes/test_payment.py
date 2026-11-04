@@ -204,3 +204,30 @@ async def test_create_payment_reservation_not_pending(
     assert response.status_code == 404
 
     assert data["detail"] == "Reservation is not pending"
+
+
+@respx.mock
+async def test_stripe_webhook(
+    client: AsyncClient, test_settings: Auth0Settings
+) -> None:
+
+    route = respx.post(f"{test_settings.payment_service_url}/payment/webhook").mock(
+        return_value=Response(status_code=200, json={})
+    )
+
+    response = await client.post(
+        "/payments/webhook",
+        content=b'{"id": "evt_test", "type": "checkout.session.completed"}',
+        headers={"Stripe-Signature": "t=123, v1=test_signature"},
+    )
+
+    assert response.status_code == 200
+    assert route.called is True
+    assert (
+        route.calls.last.request.content
+        == b'{"id": "evt_test", "type": "checkout.session.completed"}'
+    )
+    assert (
+        route.calls.last.request.headers["Stripe-Signature"]
+        == "t=123, v1=test_signature"
+    )
