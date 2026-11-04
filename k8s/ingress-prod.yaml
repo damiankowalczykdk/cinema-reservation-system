@@ -3,7 +3,13 @@ kind: Ingress
 metadata:
   name: cinema-ingress
   namespace: cinema
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
 spec:
+  tls:
+    - hosts:
+        - 13-140-206-134.sslip.io
+      secretName: cinema-tls
   ingressClassName: traefik
   rules:
   - host: 13-140-206-134.sslip.io
