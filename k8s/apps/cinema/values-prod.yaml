@@ -1,2 +1,1 @@
-image: ghcr.io/damiankowalczykdk/cinema-reservation-system/cinema-service:3caccb17669b2827d9fa2bb2ac42ab2b906d0615
 imagePullPolicy: IfNotPresent
