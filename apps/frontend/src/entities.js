@@ -4,6 +4,7 @@ import {
   createMovie, getMovieById, searchMoviesByTitle, updateMovie, deleteMovie, GENRES,
   createScreening, getScreeningById, updateScreening, deleteScreening,
 } from './api.js'
+import ScreeningsList from './admin/ScreeningsList.jsx'
 
 const entities = {
   cinema: {
@@ -45,7 +46,8 @@ const entities = {
   },
   screening: {
     resource: 'Screening',
-    note: 'No search-by-name endpoint on the gateway for screenings — use Get by ID.',
+    note: 'The table lists upcoming screenings only; past ones can still be fetched with Get by ID.',
+    list: ScreeningsList,
     fields: [
       { name: 'movie_id', label: 'Movie ID', type: 'number' },
       { name: 'hall_id', label: 'Hall ID', type: 'number' },

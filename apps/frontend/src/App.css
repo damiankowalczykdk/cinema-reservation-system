@@ -311,6 +311,40 @@ button.btn-danger-ghost:hover:not(:disabled) {
   border-color: rgba(240, 85, 90, 0.35);
 }
 
+/* admin overview tables (e.g. upcoming screenings) */
+.admin-list {
+  overflow-x: auto;
+}
+
+.admin-list table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.admin-list th,
+.admin-list td {
+  text-align: left;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+
+.admin-list th {
+  color: var(--text);
+  font-weight: 600;
+}
+
+.admin-list td {
+  color: var(--text-h);
+}
+
+.panel h3 .admin-list__reload {
+  margin-left: auto;
+  font-size: 13px;
+  padding: 4px 10px;
+}
+
 .panel h3 {
   display: flex;
   align-items: center;

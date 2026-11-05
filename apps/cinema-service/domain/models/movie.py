@@ -2,7 +2,7 @@ from datetime import UTC, date, datetime
 from enum import Enum
 
 from core.database import Base
-from sqlalchemy import Date, DateTime, Integer, String, UniqueConstraint
+from sqlalchemy import Date, DateTime, Integer, String, Text, UniqueConstraint
 from sqlalchemy import Enum as SaEnum
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -33,7 +33,7 @@ class Movie(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     title: Mapped[str] = mapped_column(String(64), nullable=False)
-    description: Mapped[str] = mapped_column(String(255), nullable=False)
+    description: Mapped[str] = mapped_column(Text, nullable=False)
     duration_minutes: Mapped[int] = mapped_column(Integer, nullable=False)
     genre: Mapped[Genre] = mapped_column(SaEnum(Genre), nullable=False)
     release_date: Mapped[date] = mapped_column(Date, nullable=False)
