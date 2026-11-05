@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: worker-configmap
+  namespace: cinema
+data:
+  TEMPORAL_ADDRESS: temporal:7233
+  CINEMA_SERVICE_URL: http://cinema-service:8001
+
+  SMTP_HOST: smtp-relay.brevo.com
+  SMTP_PORT: "587"
+  SMTP_SENDER: "Cinema App <cinema.app@interia.pl>"
