@@ -16,6 +16,12 @@ A microservice cinema booking platform: browse the repertoire, pick seats on an 
 pay with Stripe and receive tickets with QR codes by e-mail — or let an **AI assistant** book
 the whole thing for you in a chat.
 
+### 🌐 Live demo: **https://cinema.damian-kowalczyk.dev**
+
+Running on a single VPS with k3s, deployed automatically from `main`. Payments are in Stripe **test mode** —
+use card `4242 4242 4242 4242`, any future date and any CVC. Ticket e-mails are delivered to real inboxes —
+book with your own address to receive the QR-code ticket.
+
 ---
 
 ## ✨ Features
@@ -59,15 +65,17 @@ the whole thing for you in a chat.
 
 Every API request from the browser goes through the **gateway** — the only backend service exposed to the
 outside world and the only place where authentication happens. Internal services trust the gateway.
-In Kubernetes the Ingress serves the frontend, and its nginx proxies `/api/*` to the gateway, so the whole
-app lives under a single origin.
+In Kubernetes the Ingress (Traefik on k3s, with a Let's Encrypt certificate from cert-manager) serves the
+frontend, and its nginx proxies `/api/*` to the gateway, so the whole app lives under a single HTTPS origin.
+Stripe webhooks take the same public path and the gateway forwards them to payment-service.
 
 ```mermaid
 flowchart LR
     user([👤 Browser])
 
-    subgraph cluster[" Kubernetes cluster "]
-        ingress[Ingress]
+    subgraph cluster[" Kubernetes cluster (k3s) "]
+        ingress[Ingress · Traefik<br/>TLS termination]
+        certmanager[cert-manager]
         frontend[frontend<br/>React SPA on nginx]
         gateway[gateway<br/>FastAPI · Auth0 JWT · rate limit]
 
@@ -80,19 +88,23 @@ flowchart LR
         pgpay[(PostgreSQL<br/>payment_db)]
         redis[(Redis<br/>chat history)]
         temporal{{Temporal}}
-        mail[Mailpit / SMTP]
     end
 
     auth0[[Auth0]]
     stripe[[Stripe]]
     openai[[OpenAI]]
     tmdb[[TMDB]]
+    letsencrypt[[Let's Encrypt]]
+    brevo[[Brevo<br/>SMTP relay]]
 
-    user --> ingress
+    user -->|HTTPS| ingress
     ingress --> frontend
     frontend -->|"/api/*"| gateway
     user -. login .-> auth0
     gateway -. JWKS .-> auth0
+    certmanager -. TLS certificate .-> ingress
+    certmanager -. ACME HTTP-01 .-> letsencrypt
+    stripe -. "webhook /api/payments/webhook" .-> ingress
 
     gateway --> cinema
     gateway --> payment
@@ -104,7 +116,7 @@ flowchart LR
 
     payment --> pgpay
     payment -- confirm --> cinema
-    payment <--> stripe
+    payment -- "checkout session · refund" --> stripe
     payment -- signal paid --> temporal
 
     ai --> openai
@@ -113,13 +125,14 @@ flowchart LR
 
     worker <--> temporal
     worker --> cinema
-    worker --> mail
+    worker -- "SMTP · STARTTLS" --> brevo
+    brevo -. "📧 tickets" .-> user
 ```
 
 | Service | Responsibility | Tech |
 |---|---|---|
 | `frontend` | SPA: repertoire, trailers, seat map, checkout, AI chat, my tickets, admin console | React 19, React Router, Radix UI, Vite, nginx |
-| `gateway` | Single entry point, Auth0 login flow and JWT validation, roles, rate limiting, proxy to services | FastAPI, PyJWT, slowapi |
+| `gateway` | Single entry point, Auth0 login flow and JWT validation, roles, rate limiting, proxy to services, Stripe webhook pass-through | FastAPI, PyJWT, slowapi |
 | `cinema-service` | Core domain — cinemas, halls, movies, screenings, reservations, seat map, ticket summary | FastAPI, SQLAlchemy 2 (async), asyncpg, Alembic |
 | `payment-service` | Stripe Checkout sessions, webhook verification, payment status | FastAPI, Stripe, SQLAlchemy, Alembic |
 | `ai-service` | Booking assistant — OpenAI function calling over the cinema API, conversation history per user | FastAPI, OpenAI SDK, Redis |
@@ -159,7 +172,8 @@ sequenceDiagram
     P->>S: Checkout Session (expires_at)
     S-->>U: Stripe payment page
     U->>S: pays
-    S->>P: webhook checkout.session.completed
+    S->>G: webhook checkout.session.completed
+    G->>P: forward raw body + Stripe-Signature
     P->>P: verify signature, mark paid
     P->>C: confirm reservation
     Note over P,C: if the hold already expired: 409 → automatic refund, flow stops here
@@ -203,6 +217,14 @@ sequenceDiagram
 - **One Helm chart for all apps** — every app is "a container with env vars", optionally with an HTTP port,
   health probes and a migrations `initContainer`; a small `values.yaml` per app switches these on, so one
   generic chart replaces six copies of manifests.
+- **Stripe webhooks through the gateway, byte for byte** — payment-service is not reachable from the internet,
+  so the gateway forwards the webhook untouched (raw body + `Stripe-Signature`). Re-serialising the JSON would
+  break the HMAC signature; the signature itself is verified only in payment-service, where the secret lives.
+- **One image, many environments** — images are identical everywhere; differences (public URLs, `COOKIE_SECURE`,
+  SMTP relay, pull policy) live in ConfigMaps, Secrets and `values-prod.yaml`. SMTP credentials are optional
+  settings, so the same worker image sends to Mailpit locally without authentication and to Brevo in production.
+  The image tag is set only by CI (`--set image=…:<sha>`), so what runs in production always maps to exactly
+  one commit.
 
 ---
 
@@ -211,13 +233,14 @@ sequenceDiagram
 - **Backend:** Python 3.13, FastAPI, Pydantic v2, SQLAlchemy 2 (async), Alembic, httpx, Poetry
 - **Workflows:** Temporal
 - **Data:** PostgreSQL 16, Redis 7
-- **Integrations:** Auth0, Stripe Checkout, OpenAI Responses API (function calling), TMDB
+- **Integrations:** Auth0, Stripe Checkout, OpenAI Responses API (function calling), TMDB, Brevo (SMTP relay)
 - **Frontend:** React 19, React Router, Vite, Radix UI, oxlint
 - **Testing:** pytest, pytest-asyncio, pytest-cov (100% line coverage), testcontainers (real PostgreSQL in integration tests), respx
 - **Quality:** mypy, ruff, gitleaks, pre-commit, Conventional Commits
 - **Local dev tools:** Stripe CLI (webhook forwarding), Mailpit (e-mail catcher), Temporal UI
-- **Infrastructure:** Docker (multi-stage builds), Docker Compose, Kubernetes (minikube, k3s), Helm, NGINX Ingress
-- **CI/CD:** GitHub Actions → GitHub Container Registry
+- **Infrastructure:** Docker (multi-stage builds), Docker Compose, Kubernetes (minikube locally, k3s in production), Helm,
+  NGINX Ingress / Traefik, cert-manager + Let's Encrypt, Portainer, Contabo VPS (Ubuntu 24.04, ufw)
+- **CI/CD:** GitHub Actions → GitHub Container Registry → `helm upgrade` on k3s
 
 ## 📁 Project structure
 
@@ -232,9 +255,12 @@ sequenceDiagram
 │   └── worker-service/    # Temporal worker
 ├── k8s/
 │   ├── chart/             # one generic Helm chart for every app
-│   ├── apps/<service>/    # per-service values and ConfigMaps (Secrets are gitignored)
+│   ├── apps/<service>/    # values.yaml + ConfigMaps; *-prod.yaml overrides for k3s (Secrets are gitignored)
 │   ├── infra/             # Postgres, Redis, Temporal, Mailpit
-│   ├── ingress.yaml
+│   ├── ingress.yaml       # minikube (NGINX, http://localhost)
+│   ├── ingress-prod.yaml  # k3s (Traefik, TLS via cert-manager)
+│   ├── redirect-https.yaml # Traefik middleware: HTTP → HTTPS
+│   ├── cluster-issuer.yaml # Let's Encrypt issuer for cert-manager
 │   └── namespace.yaml
 ├── docker-compose.yml     # full local environment
 └── .github/workflows/ci-cd.yaml
@@ -301,8 +327,9 @@ Test payments work with card `4242 4242 4242 4242`, any future date and any CVC.
 #### Auth0 setup
 
 - **Application** (Regular Web App):
-  - *Allowed Callback URLs*: `http://localhost:8000/auth/callback` (Compose), `http://localhost/api/auth/callback` (Kubernetes)
-  - *Allowed Logout URLs*: `http://localhost:3000` (Compose), `http://localhost` (Kubernetes) — must match `APP_BASE_URL`
+  - *Allowed Callback URLs*: `http://localhost:8000/auth/callback`
+  - *Allowed Logout URLs*: `http://localhost:3000` — must match `APP_BASE_URL`
+  - in production add the public `https://<host>/api/auth/callback` and `https://<host>` as well
 - **API**: its identifier is `AUTH0_AUDIENCE` in `apps/gateway/.env`.
 - **Roles**: create `admin` and `user`, and assign `admin` to your account to unlock the admin console.
 - **Post-login Action**: add the custom claims the gateway reads from the access token —
@@ -310,36 +337,6 @@ Test payments work with card `4242 4242 4242 4242`, any future date and any CVC.
 
 > **Empty home page?** It lists only movies with **upcoming** screenings — add a cinema, a hall, a movie
 > and a few screenings with a future `start_time` in the admin console.
-
-### Kubernetes (minikube)
-
-Every app is deployed with a single reusable Helm chart (`k8s/chart`) and a small per-service `values.yaml`.
-
-Before you start:
-- Secrets are not committed (`k8s/**/secret.yaml` is in `.gitignore`) — create the `secret.yaml` files
-  (infra and apps) with your own keys.
-- The chart uses locally built images (`imagePullPolicy: Never`) — build them inside minikube's Docker
-  with the tags from each `values.yaml`, e.g. `docker build -t cinema-service:1.1 apps/cinema-service`.
-
-```bash
-minikube addons enable ingress
-eval $(minikube docker-env)        # then build the images
-
-kubectl apply -f k8s/namespace.yaml
-kubectl apply -R -f k8s/infra/
-
-# for each app: cinema, payment, ai, gateway, worker, frontend
-# (apply its configmap.yaml / secret.yaml if the folder has them)
-kubectl apply -f k8s/apps/cinema/configmap.yaml -f k8s/apps/cinema/secret.yaml
-helm install cinema k8s/chart -n cinema -f k8s/apps/cinema/values.yaml
-
-kubectl apply -f k8s/ingress.yaml
-minikube tunnel                    # app available at http://localhost
-```
-
-The Helm release name must match the app folder name — the chart names the Service `<release>-service`,
-which is how the apps find each other (e.g. `http://cinema-service:8001`).
-Database migrations run automatically in an `initContainer` before the service starts.
 
 ### Tests
 
@@ -364,16 +361,68 @@ flowchart LR
     lint --> build
     test --> build
     build["build and push<br/>matrix: 6 images · push only"] --> ghcr[("ghcr.io")]
-    ghcr -. pull .-> k3s["k3s on VPS<br/>in progress"]
+    build --> deploy["deploy<br/>helm upgrade --set image=…:sha<br/>matrix: 6 releases · --wait"]
+    deploy --> k3s["k3s on VPS<br/>rolling update"]
+    ghcr -. pull image .-> k3s
 ```
 
 - **lint** — all pre-commit hooks on the whole repo
 - **commits** — every commit in a PR must follow Conventional Commits
 - **test** — pytest for each backend service in a matrix
 - **build** — on push, Docker images for all 6 apps are pushed to GHCR, tagged with the commit SHA and `latest`
+- **deploy** — after a successful build, `helm upgrade` points each release at the new SHA tag; k3s pulls the
+  image and swaps pods with a rolling update. The kubeconfig comes from the `KUBE_CONFIG` repository secret;
+  production ConfigMaps and Secrets are managed by hand, so CI never sees application credentials.
+
+## ☁️ Production (k3s on a VPS)
+
+The live demo runs on one Contabo VPS (4 vCPU, 8 GB RAM) with **k3s** — a lightweight Kubernetes
+distribution that ships with Traefik (Ingress) and local-path storage (PVCs). The same manifests and Helm
+chart are used as in minikube; production differences are kept in `*-prod.yaml` files.
+
+- **Server** — SSH key login only (password auth disabled), `ufw` allows only SSH, 80, 443 and the k3s API
+- **Secrets** — created with `kubectl create secret … --from-literal`, never committed; new values for
+  production (database passwords, `TICKET_SECRET`, session secret)
+- **HTTPS** — cert-manager with a Let's Encrypt `ClusterIssuer` (HTTP-01 through Traefik); the Ingress
+  annotation `cert-manager.io/cluster-issuer` requests and renews the certificate automatically.
+  A Traefik `redirectScheme` middleware permanently redirects HTTP to HTTPS (308)
+- **Domain** — the demo lives on a subdomain of my own domain: an `A` record for `cinema` points at the VPS,
+  while the rest of the domain keeps serving its existing site
+- **Cookies** — `COOKIE_SECURE=true` in production marks the auth and session cookies as `Secure`
+- **Stripe** — a webhook destination points at `https://<host>/api/payments/webhook`; its signing secret is
+  stored in `payment-secret`
+- **E-mail** — the worker sends tickets through the Brevo SMTP relay (port 587, STARTTLS); the SMTP login and
+  key are stored in `worker-secret`. The domain is authenticated in Brevo (DKIM + DMARC records), so ticket
+  e-mails pass DMARC and land in the inbox instead of spam
+- **OpenAI** — prepaid credits with auto-reload off act as a hard spending cap for the public assistant
+- **Observability** — Portainer (not exposed publicly, reached via `kubectl port-forward`) for pods, logs
+  and events; databases are reached the same way
+
+First install, in short:
+
+```bash
+kubectl apply -f k8s/namespace.yaml
+kubectl apply -R -f k8s/infra/                     # + kubectl create secret … for the databases
+kubectl apply -f k8s/apps/<app>/configmap.yaml     # and configmap-prod.yaml where it exists
+helm install <app> k8s/chart -n cinema \
+  -f k8s/apps/<app>/values.yaml -f k8s/apps/<app>/values-prod.yaml \
+  --set image=ghcr.io/damiankowalczykdk/cinema-reservation-system/<image>:<sha>
+
+helm install cert-manager jetstack/cert-manager -n cert-manager --create-namespace --set crds.enabled=true
+kubectl apply -f k8s/cluster-issuer.yaml
+kubectl apply -f k8s/redirect-https.yaml           # before the Ingress that references it
+kubectl apply -f k8s/ingress-prod.yaml
+```
+
+The Helm release name must match the app folder name — the chart names the Service `<release>-service`,
+which is how the apps find each other (e.g. `http://cinema-service:8001`). Database migrations run
+automatically in an `initContainer` before the service starts. The same manifests also run on minikube
+(`k8s/ingress.yaml`, NGINX Ingress, locally built images).
+
+After that every push to `main` is deployed by CI.
 
 ---
 
 ## 👤 Author
 
-**Damian Kowalczyk** — [GitHub](https://github.com/damiankowalczykdk)
+**Damian Kowalczyk** — [Portfolio](https://damian-kowalczyk.dev) · [GitHub](https://github.com/damiankowalczykdk)

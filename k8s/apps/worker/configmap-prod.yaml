@@ -9,4 +9,4 @@ data:
 
   SMTP_HOST: smtp-relay.brevo.com
   SMTP_PORT: "587"
-  SMTP_SENDER: "Cinema App <cinema.app@interia.pl>"
+  SMTP_SENDER: "Cinema App <ticket@damian-kowalczyk.dev>"

@@ -4,7 +4,7 @@ metadata:
   name: payment-configmap
   namespace: cinema
 data:
-  FRONTEND_URL: https://13-140-206-134.sslip.io
+  FRONTEND_URL: https://cinema.damian-kowalczyk.dev
   CINEMA_SERVICE_URL: http://cinema-service:8001
   HTTP_TIMEOUT: "10"
   STRIPE_MIN_SESSION_MINUTES: "31"
