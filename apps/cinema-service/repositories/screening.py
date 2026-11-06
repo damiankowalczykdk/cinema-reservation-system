@@ -81,6 +81,7 @@ class ScreeningRepository(GenericRepository[Screening]):
             .where(*conditions)
             .join(Movie, Movie.id == Screening.movie_id)
             .join(Cinema, Cinema.id == Hall.cinema_id)
+            .order_by(Screening.start_time)
         )
         result = await self.session.execute(stmt)
         return result.mappings().all()

@@ -165,11 +165,12 @@ function DeleteSection({ resource, remove }) {
 
 // Config-driven CRUD dashboard page for one gateway entity — Cinema/Hall/Movie/Screening
 // all follow the same create/get/search/update/delete shape, only the fields differ.
-function EntityCrud({ resource, note, fields, searchFields, api }) {
+function EntityCrud({ resource, note, fields, searchFields, api, list: List }) {
   return (
     <div>
       <h2>{resource}s</h2>
       {note && <p className="note">{note}</p>}
+      {List && <List />}
       <div className="grid">
         <CreateSection resource={resource} fields={fields} create={api.create} />
         <GetByIdSection resource={resource} getById={api.getById} />

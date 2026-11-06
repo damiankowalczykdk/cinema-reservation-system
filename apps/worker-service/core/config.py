@@ -11,6 +11,8 @@ class Settings(BaseSettings):
     smtp_host: str
     smtp_port: int
     smtp_sender: str
+    smtp_username: str | None = None
+    smtp_password: str | None = None
 
     WARSAW: ZoneInfo = ZoneInfo("Europe/Warsaw")
 

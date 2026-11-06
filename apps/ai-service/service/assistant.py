@@ -16,7 +16,11 @@ class AssistantService:
         self.cinema_client = cinema_client
 
     async def search_showtimes(
-        self, city: str, genre: str | None, after: str | None, before: str | None
+        self,
+        city: str | None,
+        genre: str | None,
+        after: str | None,
+        before: str | None,
     ) -> list[ShowtimeRead]:
         params = {"city": city, "genre": genre, "date_from": after, "date_to": before}
         params = {k: v for k, v in params.items() if v is not None}

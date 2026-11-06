@@ -36,6 +36,7 @@ class ServiceRequestClient:
         path: str,
         *,
         timeout: float | UseClientDefault = httpx.USE_CLIENT_DEFAULT,
+        content: bytes | None = None,
         json: JsonType = None,
         params: ParamsType = None,
         headers: HeadersType = None,
@@ -45,6 +46,7 @@ class ServiceRequestClient:
                 method,
                 url=f"{self.base_url}{path}",
                 timeout=timeout,
+                content=content,
                 json=json,
                 params=params,
                 headers=headers,
@@ -54,9 +56,6 @@ class ServiceRequestClient:
                 status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
                 detail=f"Request failed: {e!s}",
             )
-        if response.status_code == 204:
-            return cast(T, None)
-
         if response.status_code >= 400:
             error_detail: str | JsonType
             try:
@@ -70,5 +69,8 @@ class ServiceRequestClient:
                 status_code=response.status_code,
                 detail=error_detail,
             )
+
+        if response.status_code == 204 or not response.content:
+            return cast(T, None)
 
         return response.json()

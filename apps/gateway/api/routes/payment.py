@@ -2,7 +2,7 @@ from core.security import get_current_user
 from domain.schemas.auth import TokenPayload
 from domain.schemas.payment import CheckoutSessionRead, CreatePayment
 from domain.schemas.reservation import ReservationRead, Status
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from pydantic import TypeAdapter
 
 from api.dependencies import CinemaServiceClient, PaymentServiceClient
@@ -47,4 +47,17 @@ async def create_payment(
         "/payment",
         json={"group_id": reservation.group_id, "guest_email": payload.guest_email},
         headers={"X-User-Id": current_user.sub} if current_user else None,
+    )
+
+
+@router.post("/webhook", status_code=status.HTTP_200_OK, summary="Stripe webhook")
+async def stripe_webhook(
+    request: Request, payment_client: PaymentServiceClient
+) -> None:
+    payload = await request.body()
+    await payment_client.request(
+        "POST",
+        "/payment/webhook",
+        content=payload,
+        headers={"Stripe-Signature": request.headers.get("Stripe-Signature", "")},
     )

@@ -43,7 +43,9 @@ app.add_middleware(
     allow_methods=["GET", "POST", "PATCH", "DELETE"],
     allow_headers=["*"],
 )
-app.add_middleware(SessionMiddleware, secret_key=settings.secret_key)
+app.add_middleware(
+    SessionMiddleware, secret_key=settings.secret_key, https_only=settings.cookie_secure
+)
 
 app.include_router(auth_router)
 app.include_router(cinema_router)

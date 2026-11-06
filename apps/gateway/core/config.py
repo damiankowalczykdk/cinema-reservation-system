@@ -21,6 +21,8 @@ class Auth0Settings(BaseSettings):
     payment_service_url: str
     ai_service_url: str
 
+    cookie_secure: bool = False
+
     model_config = SettingsConfigDict(env_file=".env", extra="ignore", frozen=True)
 
 

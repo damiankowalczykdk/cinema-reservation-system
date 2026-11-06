@@ -31,8 +31,8 @@ TOOLS: list[FunctionToolParam] = [
             "type": "object",
             "properties": {
                 "city": {
-                    "type": "string",
-                    "description": "Nazwa miasta w mianowniku, z polskimi znakami, np. Wrocław, Łódź, Kraków. Popraw pisownię, jeśli użytkownik pominął polskie znaki.",
+                    "type": ["string", "null"],
+                    "description": "Nazwa miasta w mianowniku, z polskimi znakami, np. Wrocław, Łódź, Kraków. Popraw pisownię, jeśli użytkownik pominął polskie znaki. Null, gdy użytkownik nie podał miasta albo pyta, w jakich miastach są kina lub seanse — wtedy wyniki obejmują wszystkie miasta.",
                 },
                 "genre": {
                     "type": ["string", "null"],

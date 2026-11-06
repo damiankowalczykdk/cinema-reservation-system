@@ -63,7 +63,7 @@ async def auth_callback(request: Request, code: str, state: str):
             key="access_token",
             value=tokens["access_token"],
             httponly=True,
-            secure=False,
+            secure=settings.cookie_secure,
             samesite="lax",
             max_age=tokens.get("expires_in", 3600),
             path="/",

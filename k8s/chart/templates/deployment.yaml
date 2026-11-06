@@ -17,7 +17,7 @@ spec:
       initContainers:
         - name: {{ .Release.Name }}-migrations
           image: {{ .Values.image }}
-          imagePullPolicy: Never
+          imagePullPolicy: {{ .Values.imagePullPolicy }}
           command: [ "alembic", "upgrade", "head" ]
           envFrom:
                {{- range .Values.configMaps }}
@@ -32,7 +32,7 @@ spec:
       containers:
         - name: {{ .Release.Name }}-app
           image: {{ .Values.image }}
-          imagePullPolicy: Never
+          imagePullPolicy: {{ .Values.imagePullPolicy }}
           envFrom:
             {{- range .Values.configMaps }}
             - configMapRef:

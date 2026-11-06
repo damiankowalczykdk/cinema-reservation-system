@@ -98,4 +98,10 @@ class EmailActivities:
             qr_code, maintype="image", subtype="png", filename="bilety.png"
         )
 
-        await send(message, hostname=settings.smtp_host, port=settings.smtp_port)
+        await send(
+            message,
+            hostname=settings.smtp_host,
+            port=settings.smtp_port,
+            username=settings.smtp_username,
+            password=settings.smtp_password,
+        )

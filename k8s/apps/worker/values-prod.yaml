@@ -1,0 +1,3 @@
+imagePullPolicy: IfNotPresent
+secrets:
+  - worker-secret
