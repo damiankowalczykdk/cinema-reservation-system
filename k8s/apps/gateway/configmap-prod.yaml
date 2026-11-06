@@ -4,7 +4,7 @@ metadata:
   name: gateway-configmap
   namespace: cinema
 data:
-  APP_BASE_URL: https://13-140-206-134.sslip.io
+  APP_BASE_URL: https://cinema.damian-kowalczyk.dev
 
   HTTP_TIMEOUT: "10"
   HTTP_TIMEOUT_HEALTH_CHECK: "5"
@@ -13,7 +13,7 @@ data:
   COOKIE_SECURE: "true"
 
   AUTH0_AUDIENCE: https://api.cinema-reservation-system.com
-  AUTH0_CALLBACK_URL: https://13-140-206-134.sslip.io/api/auth/callback
+  AUTH0_CALLBACK_URL: https://cinema.damian-kowalczyk.dev/api/auth/callback
   AUTH0_DOMAIN: cinema-reservation-system.eu.auth0.com
 
   CINEMA_SERVICE_URL: http://cinema-service:8001
