@@ -9,11 +9,11 @@ metadata:
 spec:
   tls:
     - hosts:
-        - 13-140-206-134.sslip.io
+        - cinema.damian-kowalczyk.dev
       secretName: cinema-tls
   ingressClassName: traefik
   rules:
-  - host: 13-140-206-134.sslip.io
+  - host: cinema.damian-kowalczyk.dev
     http:
       paths:
       - path: /

@@ -150,15 +150,45 @@
   gap: 12px;
 }
 
+/* phones: two rows — logo + language + sign-in on top, the menu wrapped full-width below,
+   so nothing pushes the page wider than the screen */
 @media (max-width: 720px) {
+  .container {
+    padding: 0 16px;
+  }
   .topbar__inner {
-    gap: 12px;
+    flex-wrap: wrap;
+    height: auto;
+    gap: 8px 12px;
+    padding: 10px 16px;
+  }
+  .logo {
+    order: 1;
+  }
+  .lang-switch {
+    order: 2;
+    margin-left: auto;
+  }
+  .authbox {
+    order: 3;
+    gap: 8px;
+  }
+  .topnav {
+    order: 4;
+    flex: 1 1 100%;
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+  .topnav .nav-item {
+    font-size: 13px;
+    padding: 6px 10px;
   }
   .authbox__email {
     display: none;
   }
-  .logo span {
-    display: none;
+  .logo {
+    font-size: 17px;
+    gap: 8px;
   }
 }
 
@@ -874,6 +904,23 @@ pre {
   }
 }
 
+@media (max-width: 720px) {
+  .hero {
+    padding: 22px 20px 40px;
+    margin-bottom: 36px;
+  }
+  .hero__dots {
+    left: 20px;
+  }
+  .hero h1 {
+    font-size: 30px;
+    overflow-wrap: anywhere;
+  }
+  .hero__desc {
+    font-size: 14px;
+  }
+}
+
 .section-head {
   display: flex;
   align-items: baseline;
@@ -915,6 +962,32 @@ pre {
 .movie-card__meta {
   font-size: 13px;
   color: var(--text-dim);
+}
+
+/* phones: the 190px minimum leaves room for one card only, so force two columns side by side */
+@media (max-width: 720px) {
+  .movie-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 20px 14px;
+  }
+  .movie-card__title {
+    margin: 8px 0 2px;
+    font-size: 14px;
+  }
+  .movie-card__meta {
+    font-size: 12px;
+  }
+  .movie-card .poster {
+    padding: 10px;
+  }
+  .movie-card .poster__title {
+    font-size: 16px;
+  }
+  .movie-card .poster__genre {
+    top: 8px;
+    left: 8px;
+    font-size: 10px;
+  }
 }
 
 /* ============================================================
@@ -975,6 +1048,26 @@ pre {
   background: var(--accent);
   border-color: var(--accent);
   color: var(--accent-ink);
+}
+
+/* "show all days" toggle: outlined so it reads as an action, not as another day */
+.day-tab--more,
+.day-tab--more:hover:not(:disabled) {
+  background: transparent;
+  border-style: dashed;
+  color: var(--accent);
+}
+
+/* phones: genre / day filters wrap onto several lines instead of scrolling sideways */
+@media (max-width: 720px) {
+  .day-tabs {
+    flex-wrap: wrap;
+    overflow-x: visible;
+  }
+  .day-tab {
+    padding: 6px 12px;
+    font-size: 13px;
+  }
 }
 
 .cinema-block {

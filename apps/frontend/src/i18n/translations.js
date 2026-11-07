@@ -73,6 +73,8 @@ const translations = {
     'movie.noShowtimesBody': 'This movie has no upcoming screenings. Check back later.',
     'movie.browseOther': 'Browse other movies',
     'movie.chooseDay': 'Choose a day',
+    'movie.showAllDays': '+ Show all',
+    'movie.showFewerDays': 'Show fewer',
 
     'schedule.title': 'Schedule',
     'schedule.subtitle': 'Every showtime for the next 7 days. Pick a time to choose your seats.',
@@ -238,6 +240,8 @@ const translations = {
     'movie.noShowtimesBody': 'Ten film nie ma nadchodzących seansów. Zajrzyj później.',
     'movie.browseOther': 'Zobacz inne filmy',
     'movie.chooseDay': 'Wybierz dzień',
+    'movie.showAllDays': '+ Pokaż wszystkie',
+    'movie.showFewerDays': 'Pokaż mniej',
 
     'schedule.title': 'Repertuar',
     'schedule.subtitle': 'Wszystkie seanse na najbliższe 7 dni. Kliknij godzinę, aby wybrać miejsca.',
