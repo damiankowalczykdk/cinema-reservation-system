@@ -1,14 +1,13 @@
 import secrets
 import urllib.parse
 
-import httpx
 from core.config import settings
 from domain.schemas.auth import LoginUrlResponse, TokenPayload
 from fastapi import APIRouter, HTTPException, Request, Response
 from starlette.responses import RedirectResponse
 from starlette.status import HTTP_502_BAD_GATEWAY
 
-from api.dependencies import CurrentUser
+from api.dependencies import CurrentUser, HttpClient
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -32,44 +31,42 @@ async def get_login_url(request: Request) -> LoginUrlResponse:
 
 
 @router.get("/callback")
-async def auth_callback(request: Request, code: str, state: str):
+async def auth_callback(request: Request, code: str, state: str, client: HttpClient):
     stored_state = request.session.pop("oauth_state", "")
     if not secrets.compare_digest(state, stored_state):
         raise HTTPException(
             status_code=400, detail="Invalid state - possible attacks CSRF"
         )
 
-    async with httpx.AsyncClient() as client:
-        token_response = await client.post(
-            f"https://{settings.auth0_domain}/oauth/token",
-            json={
-                "grant_type": "authorization_code",
-                "client_id": settings.auth0_client_id,
-                "client_secret": settings.auth0_client_secret,
-                "code": code,
-                "redirect_uri": settings.auth0_callback_url,
-            },
-            timeout=settings.http_timeout,
+    token_response = await client.post(
+        f"https://{settings.auth0_domain}/oauth/token",
+        json={
+            "grant_type": "authorization_code",
+            "client_id": settings.auth0_client_id,
+            "client_secret": settings.auth0_client_secret,
+            "code": code,
+            "redirect_uri": settings.auth0_callback_url,
+        },
+    )
+
+    if token_response.status_code != 200:
+        raise HTTPException(
+            status_code=HTTP_502_BAD_GATEWAY, detail="Invalid authorization code"
         )
 
-        if token_response.status_code != 200:
-            raise HTTPException(
-                status_code=HTTP_502_BAD_GATEWAY, detail="Invalid authorization code"
-            )
+    tokens = token_response.json()
+    response = RedirectResponse(url=settings.app_base_url)
+    response.set_cookie(
+        key="access_token",
+        value=tokens["access_token"],
+        httponly=True,
+        secure=settings.cookie_secure,
+        samesite="lax",
+        max_age=tokens.get("expires_in", 3600),
+        path="/",
+    )
 
-        tokens = token_response.json()
-        response = RedirectResponse(url=settings.app_base_url)
-        response.set_cookie(
-            key="access_token",
-            value=tokens["access_token"],
-            httponly=True,
-            secure=settings.cookie_secure,
-            samesite="lax",
-            max_age=tokens.get("expires_in", 3600),
-            path="/",
-        )
-
-        return response
+    return response
 
 
 @router.get("/me", response_model=TokenPayload, response_model_by_alias=False)

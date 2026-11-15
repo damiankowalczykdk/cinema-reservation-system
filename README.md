@@ -331,7 +331,7 @@ Test payments work with card `4242 4242 4242 4242`, any future date and any CVC.
   - *Allowed Logout URLs*: `http://localhost:3000` — must match `APP_BASE_URL`
   - in production add the public `https://<host>/api/auth/callback` and `https://<host>` as well
 - **API**: its identifier is `AUTH0_AUDIENCE` in `apps/gateway/.env`.
-- **Roles**: create `admin` and `user`, and assign `admin` to your account to unlock the admin console.
+- **Roles**: create an `admin` role and assign it to your account to unlock the admin console.
 - **Post-login Action**: add the custom claims the gateway reads from the access token —
   `my-namespace/globalRoles` (list of role names) and `my-namespace/email`.
 

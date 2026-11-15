@@ -18,12 +18,9 @@ class MovieService:
         ):
             raise ConflictException("Movie already exists")
 
-        poster_path, tmdb_id = await self.tmdb_client.get_poster_path(
+        poster_path, trailer_key = await self._fetch_tmdb_data(
             create_movie.title, create_movie.release_date.year
         )
-        trailer_key = None
-        if tmdb_id is not None:
-            trailer_key = await self.tmdb_client.get_trailer_key(tmdb_id)
 
         movie = Movie(
             title=create_movie.title,
@@ -38,9 +35,7 @@ class MovieService:
         return await self.repository.add(movie)
 
     async def get_movie_by_id(self, movie_id: int) -> Movie:
-        movie = await self.repository.get_by_id(movie_id)
-        if not movie:
-            raise NotFoundException("Movie not found")
+        movie = await self._get_movie(movie_id)
         return movie
 
     async def get_movie_by_title(self, title: str) -> Sequence[Movie]:
@@ -50,9 +45,7 @@ class MovieService:
         return movies
 
     async def update_movie(self, movie_id: int, update_movie: UpdateMovie) -> Movie:
-        movie = await self.repository.get_by_id(movie_id)
-        if not movie:
-            raise NotFoundException("Movie not found")
+        movie = await self._get_movie(movie_id)
 
         title = update_movie.title if update_movie.title is not None else movie.title
         release_date = (
@@ -61,14 +54,9 @@ class MovieService:
             else movie.release_date
         )
 
-        poster_path, tmdb_id = await self.tmdb_client.get_poster_path(
-            title, release_date.year
-        )
-        poster = poster_path if poster_path is not None else movie.poster_path
+        poster_path, trailer_key = await self._fetch_tmdb_data(title, release_date.year)
 
-        trailer_key = None
-        if tmdb_id is not None:
-            trailer_key = await self.tmdb_client.get_trailer_key(tmdb_id)
+        poster = poster_path if poster_path is not None else movie.poster_path
 
         trailer = trailer_key if trailer_key is not None else movie.trailer_key
 
@@ -93,8 +81,21 @@ class MovieService:
         return await self.repository.add(movie)
 
     async def delete_movie_by_id(self, movie_id: int) -> None:
+        await self._get_movie(movie_id)
+        await self.repository.delete_by_id(movie_id)
+
+    async def _get_movie(self, movie_id: int) -> Movie:
         movie = await self.repository.get_by_id(movie_id)
         if not movie:
             raise NotFoundException("Movie not found")
+        return movie
 
-        await self.repository.delete_by_id(movie_id)
+    async def _fetch_tmdb_data(
+        self, title: str, year: int
+    ) -> tuple[str | None, str | None]:
+        poster_path, tmdb_id = await self.tmdb_client.get_poster_path(title, year)
+        trailer_key = None
+        if tmdb_id is not None:
+            trailer_key = await self.tmdb_client.get_trailer_key(tmdb_id)
+
+        return poster_path, trailer_key

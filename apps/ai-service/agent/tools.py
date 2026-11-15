@@ -75,7 +75,7 @@ TOOLS: list[FunctionToolParam] = [
     {
         "type": "function",
         "name": "create_reservation",
-        "description": "Sprawdza wolne czy miejsca są wolne natepnie robi rezerwację",
+        "description": "Sprawdza czy miejsca są wolne następnie robi rezerwację",
         "strict": True,
         "parameters": {
             "type": "object",

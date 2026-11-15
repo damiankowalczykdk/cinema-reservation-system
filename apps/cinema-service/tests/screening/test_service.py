@@ -136,7 +136,7 @@ async def test_get_screening_by_id_not_found(
 ) -> None:
     mock_repo_screening.get_by_id = AsyncMock(return_value=None)
     with pytest.raises(NotFoundException, match="Screening not found"):
-        await service_screening._check_screening_by_id(1)
+        await service_screening._get_screening(1)
 
 
 async def test_get_by_id_not_found_movie(
@@ -145,7 +145,7 @@ async def test_get_by_id_not_found_movie(
     mock_repo_movie.get_by_id = AsyncMock(return_value=None)
 
     with pytest.raises(NotFoundException, match="Movie not found"):
-        await service_screening._check_movie_by_id(1)
+        await service_screening._get_movie(1)
 
 
 async def test_get_by_id_not_found_hall(
@@ -154,7 +154,16 @@ async def test_get_by_id_not_found_hall(
     mock_repo_hall.get_by_id_for_update = AsyncMock(return_value=None)
 
     with pytest.raises(NotFoundException, match="Hall not found"):
-        await service_screening._check_hall_by_id(1)
+        await service_screening._get_hall(1)
+
+
+async def test_get_by_id_not_found_cinema(
+    service_screening: ScreeningService, mock_repo_cinema: AsyncMock
+) -> None:
+    mock_repo_cinema.get_by_id = AsyncMock(return_value=None)
+
+    with pytest.raises(NotFoundException, match="Cinema not found"):
+        await service_screening._get_cinema(1)
 
 
 async def test_delete_screening_by_id_success(
