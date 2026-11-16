@@ -12,7 +12,9 @@ from core.exceptions import (
     UnauthorizedException,
     ValidationException,
 )
+from domain.models.hall import Hall
 from domain.models.reservation import Reservation, Status
+from domain.models.screening import Screening
 from domain.schemas.reservation import (
     CreateReservation,
     OccupiedSeatsRead,
@@ -47,20 +49,14 @@ class ReservationService:
         user_id: str | None = None,
         user_email: str | None = None,
     ) -> list[Reservation]:
-        screening = await self.screening_repository.get_by_id(
-            create_reservation.screening_id
-        )
-        if not screening:
-            raise NotFoundException("Screening not found")
+        screening = await self._get_screening(create_reservation.screening_id)
 
         if screening.start_time < datetime.now(UTC):
             raise ConflictException(
                 "Cannot create reservation screening already started"
             )
 
-        hall = await self.hall_repository.get_by_id(screening.hall_id)
-        if not hall:
-            raise NotFoundException("Hall not found")
+        hall = await self._get_hall(screening.hall_id)
 
         if bool(user_id) == bool(create_reservation.guest_email):
             raise ValidationException(
@@ -123,7 +119,7 @@ class ReservationService:
             logger.warning(f"Workflow not started for reservation {group_id}")
         return reservations
 
-    async def get_reservation_summary(self, group_id: int):
+    async def get_reservation_summary(self, group_id: int) -> ReservationSummaryRead:
         reservation = await self.reservation_repository.get_reservation_summary(
             group_id
         )
@@ -161,7 +157,7 @@ class ReservationService:
         if not res:
             raise NotFoundException("Invalid ticket code")
 
-        reservations = await self._check_group(group_id)
+        reservations = await self._get_group(group_id)
         if any(r.status != Status.CONFIRMED for r in reservations):
             raise ConflictException("Ticket not paid")
 
@@ -174,7 +170,7 @@ class ReservationService:
     async def get_reservations_by_group_id(
         self, group_id: int
     ) -> Sequence[Reservation]:
-        return await self._check_group(group_id)
+        return await self._get_group(group_id)
 
     async def get_group_total(self, group_id: int) -> Decimal:
         total_price = await self.reservation_repository.get_group_total(group_id)
@@ -189,7 +185,7 @@ class ReservationService:
         return await self.reservation_repository.get_by_user_id(user_id)
 
     async def extend(self, group_id: int) -> datetime:
-        reservations = await self._check_group(group_id, lock=True)
+        reservations = await self._get_group(group_id, lock=True)
 
         now = datetime.now(UTC)
         requested_expires_at = now + timedelta(minutes=settings.extend_minutes)
@@ -217,7 +213,7 @@ class ReservationService:
         return reservations[0].expires_at
 
     async def expire_group(self, group_id: int) -> list[Reservation]:
-        reservations = await self._check_group(group_id, lock=True)
+        reservations = await self._get_group(group_id, lock=True)
 
         for r in reservations:
             if r.status == Status.PENDING and r.expires_at < datetime.now(UTC):
@@ -228,13 +224,11 @@ class ReservationService:
     async def cancel_reservation(
         self, group_id: int, user_id: str | None, is_admin: bool
     ) -> Sequence[Reservation]:
-        reservations = await self._check_group(group_id, lock=True)
+        reservations = await self._get_group(group_id, lock=True)
 
         screening_id = reservations[0].screening_id
 
-        screening = await self.screening_repository.get_by_id(screening_id)
-        if screening is None:
-            raise NotFoundException("Screening not found")
+        screening = await self._get_screening(screening_id)
 
         if screening.start_time < datetime.now(UTC) and not is_admin:
             raise ConflictException(
@@ -259,19 +253,15 @@ class ReservationService:
         return res
 
     async def delete_reservation_group(self, group_id: int) -> None:
-        await self._check_group(group_id)
+        await self._get_group(group_id)
         await self.reservation_repository.delete_reservation_group(group_id)
         await self.reservation_repository.commit()
         await self._cancel_workflow(group_id)
 
     async def get_occupied_seats(self, screening_id: int) -> OccupiedSeatsRead:
-        screening = await self.screening_repository.get_by_id(screening_id)
-        if not screening:
-            raise NotFoundException("Screening not found")
+        screening = await self._get_screening(screening_id)
 
-        hall = await self.hall_repository.get_by_id(screening.hall_id)
-        if not hall:
-            raise NotFoundException("Hall not found")
+        hall = await self._get_hall(screening.hall_id)
 
         occupied_seats = await self._get_active_reservation_for_screening(screening_id)
 
@@ -282,7 +272,7 @@ class ReservationService:
         )
 
     async def set_confirm_reservation(self, group_id: int) -> None:
-        reservations = await self._check_group(group_id, lock=True)
+        reservations = await self._get_group(group_id, lock=True)
 
         if any(r.status == Status.CANCELLED for r in reservations):
             raise ConflictException("Reservation already cancelled")
@@ -309,7 +299,7 @@ class ReservationService:
         ).hexdigest()
         return signature[:16].upper()
 
-    async def _check_group(
+    async def _get_group(
         self, group_id: int, lock: bool = False
     ) -> Sequence[Reservation]:
         if not lock:
@@ -335,3 +325,16 @@ class ReservationService:
             )
         )
         return active_reservations
+
+    async def _get_screening(self, screening_id: int) -> Screening:
+        screening = await self.screening_repository.get_by_id(screening_id)
+        if not screening:
+            raise NotFoundException("Screening not found")
+        return screening
+
+    async def _get_hall(self, hall_id: int) -> Hall:
+        hall = await self.hall_repository.get_by_id(hall_id)
+        if not hall:
+            raise NotFoundException("Hall not found")
+
+        return hall

@@ -56,4 +56,3 @@ AIServiceClient = Annotated[ServiceRequestClient, Depends(get_ai_client)]
 CurrentUser = Annotated[TokenPayload, Depends(require_current_user)]
 
 admin = Depends(require_roles("admin"))
-user = Depends(require_roles("user"))

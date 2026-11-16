@@ -1,8 +1,7 @@
-from functools import lru_cache
 from typing import Annotated
 
 import httpx
-from core.config import Settings
+from core.config import settings
 from core.database import get_db
 from core.http_client import ServiceRequestClient
 from fastapi import Depends, Header, Request
@@ -29,17 +28,9 @@ TemporalClient = Annotated[TClient, Depends(get_temporal_client)]
 
 
 # CINEMA-SERVICE
-@lru_cache
-def get_settings() -> Settings:
-    return Settings()  # type: ignore
 
 
-AppSettings = Annotated[Settings, Depends(get_settings)]
-
-
-def get_cinema_client(
-    client: HttpClient, settings: AppSettings
-) -> ServiceRequestClient:
+def get_cinema_client(client: HttpClient) -> ServiceRequestClient:
     return ServiceRequestClient(client, settings.cinema_service_url)
 
 

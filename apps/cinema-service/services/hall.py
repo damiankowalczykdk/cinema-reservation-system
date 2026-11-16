@@ -31,9 +31,7 @@ class HallService:
         return await self.hall_repository.add(hall)
 
     async def get_hall_by_id(self, hall_id: int) -> Hall:
-        hall = await self.hall_repository.get_by_id(hall_id)
-        if not hall:
-            raise NotFoundException("Hall does not exist")
+        hall = await self._get_hall(hall_id)
         return hall
 
     async def get_hall_by_name(self, cinema_id: int, name: str) -> Hall:
@@ -45,9 +43,7 @@ class HallService:
         return hall
 
     async def update_hall(self, hall_id: int, update_hall: UpdateHall) -> Hall:
-        hall = await self.hall_repository.get_by_id(hall_id)
-        if not hall:
-            raise NotFoundException("Hall does not exist")
+        hall = await self._get_hall(hall_id)
 
         name = update_hall.name if update_hall.name is not None else hall.name
 
@@ -68,7 +64,11 @@ class HallService:
         return await self.hall_repository.add(hall)
 
     async def delete_hall_by_id(self, hall_id: int) -> None:
+        await self._get_hall(hall_id)
+        await self.hall_repository.delete_by_id(hall_id)
+
+    async def _get_hall(self, hall_id: int) -> Hall:
         hall = await self.hall_repository.get_by_id(hall_id)
         if not hall:
             raise NotFoundException("Hall does not exist")
-        await self.hall_repository.delete_by_id(hall_id)
+        return hall

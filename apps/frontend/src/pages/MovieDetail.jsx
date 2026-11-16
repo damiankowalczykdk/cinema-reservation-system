@@ -25,6 +25,9 @@ function groupByDayAndCinema(screenings) {
   }))
 }
 
+// how many day tabs are shown before "show all" — the repertoire can span weeks
+const VISIBLE_DAYS = 5
+
 function MovieDetail() {
   const { t } = useI18n()
   const { movieId } = useParams()
@@ -32,6 +35,7 @@ function MovieDetail() {
   const [screenings, setScreenings] = useState(null)
   const [error, setError] = useState(null)
   const [activeDay, setActiveDay] = useState(null)
+  const [showAllDays, setShowAllDays] = useState(false)
 
   useEffect(() => {
     let cancelled = false
@@ -66,6 +70,14 @@ function MovieDetail() {
   const title = movie?.title ?? screenings[0]?.movie_title ?? t('common.movie')
   const days = groupByDayAndCinema(screenings)
   const day = days.find((d) => d.key === activeDay) ?? days[0]
+  const hasMoreDays = days.length > VISIBLE_DAYS
+  const visibleDays = showAllDays ? days : days.slice(0, VISIBLE_DAYS)
+
+  function collapseDays() {
+    setShowAllDays(false)
+    // the selected day would be hidden after collapsing, so fall back to the first one
+    if (days.findIndex((d) => d.key === day.key) >= VISIBLE_DAYS) setActiveDay(null)
+  }
 
   return (
     <>
@@ -99,7 +111,7 @@ function MovieDetail() {
       ) : (
         <>
           <div className="day-tabs" role="tablist" aria-label={t('movie.chooseDay')}>
-            {days.map((d) => (
+            {visibleDays.map((d) => (
               <button
                 key={d.key}
                 role="tab"
@@ -110,6 +122,16 @@ function MovieDetail() {
                 {d.label}
               </button>
             ))}
+            {hasMoreDays && (
+              <button
+                type="button"
+                className="day-tab day-tab--more"
+                aria-expanded={showAllDays}
+                onClick={() => (showAllDays ? collapseDays() : setShowAllDays(true))}
+              >
+                {showAllDays ? t('movie.showFewerDays') : t('movie.showAllDays')}
+              </button>
+            )}
           </div>
 
           {day.cinemas.map((c) => (

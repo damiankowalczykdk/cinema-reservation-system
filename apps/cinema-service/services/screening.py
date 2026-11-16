@@ -2,6 +2,7 @@ from collections.abc import Sequence
 from datetime import timedelta
 
 from core.exceptions import ConflictException, NotFoundException
+from domain.models.cinema import Cinema
 from domain.models.hall import Hall
 from domain.models.movie import Movie
 from domain.models.screening import Screening
@@ -27,9 +28,9 @@ class ScreeningService:
         self.cinema_repository = cinema_repository
 
     async def create_screening(self, create_screening: CreateScreening) -> Screening:
-        movie = await self._check_movie_by_id(create_screening.movie_id)
+        movie = await self._get_movie(create_screening.movie_id)
 
-        await self._check_hall_by_id(create_screening.hall_id)
+        await self._get_hall(create_screening.hall_id)
 
         end_time = create_screening.start_time + timedelta(
             minutes=movie.duration_minutes
@@ -51,13 +52,13 @@ class ScreeningService:
         return await self.screening_repository.add(screening)
 
     async def get_screenings_by_id(self, screening_id: int) -> Screening:
-        screening = await self._check_screening_by_id(screening_id)
+        screening = await self._get_screening(screening_id)
         return screening
 
     async def update_screening(
         self, screening_id: int, update_screening: UpdateScreening
     ) -> Screening:
-        screening = await self._check_screening_by_id(screening_id)
+        screening = await self._get_screening(screening_id)
 
         movie_id = (
             update_screening.movie_id
@@ -75,9 +76,9 @@ class ScreeningService:
             else screening.start_time
         )
 
-        movie = await self._check_movie_by_id(movie_id)
+        movie = await self._get_movie(movie_id)
 
-        await self._check_hall_by_id(hall_id)
+        await self._get_hall(hall_id)
 
         end_time = start_time + timedelta(minutes=movie.duration_minutes)
 
@@ -100,17 +101,17 @@ class ScreeningService:
         return await self.screening_repository.add(screening)
 
     async def delete_screening_by_id(self, screening_id: int) -> None:
-        await self._check_screening_by_id(screening_id)
+        await self._get_screening(screening_id)
         await self.screening_repository.delete_by_id(screening_id)
 
     async def search_screening(
         self, search_screening: SearchScreening
     ) -> Sequence[RowMapping]:
         if search_screening.movie_id is not None:
-            await self._check_movie_by_id(search_screening.movie_id)
+            await self._get_movie(search_screening.movie_id)
 
         if search_screening.cinema_id is not None:
-            await self.cinema_repository.get_by_id(search_screening.cinema_id)
+            await self._get_cinema(search_screening.cinema_id)
 
         screenings = await self.screening_repository.get_search_screenings(
             search_screening.movie_id,
@@ -123,20 +124,26 @@ class ScreeningService:
 
         return screenings
 
-    async def _check_screening_by_id(self, screening_id: int) -> Screening:
+    async def _get_screening(self, screening_id: int) -> Screening:
         screening = await self.screening_repository.get_by_id(screening_id)
         if not screening:
             raise NotFoundException("Screening not found")
         return screening
 
-    async def _check_movie_by_id(self, movie_id: int) -> Movie:
+    async def _get_movie(self, movie_id: int) -> Movie:
         movie = await self.movie_repository.get_by_id(movie_id)
         if not movie:
             raise NotFoundException("Movie not found")
         return movie
 
-    async def _check_hall_by_id(self, hall_id: int) -> Hall:
+    async def _get_hall(self, hall_id: int) -> Hall:
         hall = await self.hall_repository.get_by_id_for_update(hall_id)
         if not hall:
             raise NotFoundException("Hall not found")
         return hall
+
+    async def _get_cinema(self, cinema_id: int) -> Cinema:
+        cinema = await self.cinema_repository.get_by_id(cinema_id)
+        if not cinema:
+            raise NotFoundException("Cinema not found")
+        return cinema

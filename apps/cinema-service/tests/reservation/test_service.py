@@ -604,13 +604,13 @@ async def test_delete_by_id_success(
     )
 
 
-async def test_check_group(
+async def test_get_group(
     reservation_service: ReservationService, mock_repo_reservation: AsyncMock
 ) -> None:
     mock_repo_reservation.get_by_group_id = AsyncMock(return_value=None)
 
     with pytest.raises(NotFoundException, match="Reservation not found"):
-        await reservation_service._check_group(1)
+        await reservation_service._get_group(1)
 
 
 async def test_occupied_seats_success(

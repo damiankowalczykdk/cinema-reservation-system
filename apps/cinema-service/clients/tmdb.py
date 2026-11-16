@@ -51,13 +51,10 @@ class TMDBClient:
             "GET", f"{self.tmdb_base_address}/movie/{tmdb_id}/videos"
         )
 
-        for r in response:
-            if r["site"] == "YouTube" and r["type"] == "Trailer":
-                return r["key"]
-
-        for r in response:
-            if r["site"] == "YouTube" and r["type"] == "Teaser":
-                return r["key"]
+        for video_type in ("Trailer", "Teaser"):
+            for r in response:
+                if r["site"] == "YouTube" and r["type"] == video_type:
+                    return r["key"]
 
         return None
 
@@ -67,7 +64,7 @@ class TMDBClient:
         try:
             headers = {"Authorization": f"Bearer {self.tmdb_api_token}"}
             response = await self.client.request(
-                f"{method}", f"{url}", params=params, headers=headers
+                method, url, params=params, headers=headers
             )
 
         except httpx.RequestError:

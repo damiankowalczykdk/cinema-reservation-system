@@ -23,9 +23,7 @@ class CinemaService:
         return await self.repository.add(cinema)
 
     async def get_cinema_by_id(self, cinema_id: int) -> Cinema:
-        cinema = await self.repository.get_by_id(cinema_id)
-        if not cinema:
-            raise NotFoundException("Cinema does not exist")
+        cinema = await self._get_cinema(cinema_id)
         return cinema
 
     async def get_cinema_by_name(self, name: str) -> Sequence[Cinema]:
@@ -37,9 +35,7 @@ class CinemaService:
     async def update_cinema(
         self, cinema_id: int, update_cinema: UpdateCinema
     ) -> Cinema:
-        cinema = await self.repository.get_by_id(cinema_id)
-        if not cinema:
-            raise NotFoundException("Cinema does not exist")
+        cinema = await self._get_cinema(cinema_id)
 
         address = (
             update_cinema.address
@@ -63,7 +59,11 @@ class CinemaService:
         return await self.repository.add(cinema)
 
     async def delete_cinema_by_id(self, cinema_id: int) -> None:
+        await self._get_cinema(cinema_id)
+        await self.repository.delete_by_id(cinema_id)
+
+    async def _get_cinema(self, cinema_id: int) -> Cinema:
         cinema = await self.repository.get_by_id(cinema_id)
         if not cinema:
             raise NotFoundException("Cinema does not exist")
-        await self.repository.delete_by_id(cinema_id)
+        return cinema

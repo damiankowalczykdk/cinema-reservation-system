@@ -34,100 +34,38 @@ class PaymentService:
     async def create_checkout_session(
         self, create_payment: CreatePayment, user_id: str | None = None
     ) -> CheckoutSessionRead:
-        response: dict[str, str] = await self.cinema_client.request(
-            "GET", f"/reservation/{create_payment.group_id}/total"
-        )
-        currency = response["currency"]
-        amount = Decimal(response["total_price"]) * 100
+        currency, amount = await self._get_total(create_payment.group_id)
 
-        reservation_active = await self.repository.get_by_active_group_id(
-            create_payment.group_id
-        )
+        try:
+            existing_payment = await self._handle_existing_payment(
+                create_payment.group_id
+            )
+            if existing_payment is not None:
+                return existing_payment
 
-        new_active_session = reservation_active is None
+            stripe_expires_at = await self._extend_hold(create_payment.group_id)
 
-        if reservation_active is not None:
-            if reservation_active.status == Status.PENDING:
-                checkout_active_session = self.client.v1.checkout.sessions.retrieve(
-                    reservation_active.stripe_session_id
+            checkout_session = await self._create_stripe_session(
+                create_payment.group_id, currency, amount, stripe_expires_at
+            )
+
+            await self.repository.add(
+                Payment(
+                    group_id=create_payment.group_id,
+                    user_id=user_id,
+                    amount=int(amount),
+                    currency=currency,
+                    status=Status.PENDING,
+                    stripe_session_id=checkout_session.id,
                 )
+            )
 
-                if checkout_active_session.status == "expired":
-                    reservation_active.status = Status.FAILED
-                    await self.repository.update(reservation_active)
-                    new_active_session = True
+        except IntegrityError:
+            raise ConflictException("Payment already in progress")
 
-                else:
-                    return CheckoutSessionRead(checkout_url=checkout_active_session.url)
-
-            elif reservation_active.status == Status.COMPLETED:
-                raise ConflictException("Reservation already paid")
-
-            elif reservation_active.status == Status.FAILED:
-                new_active_session = True
-
-            elif reservation_active.status == Status.REFUNDED:
-                raise ConflictException("Reservation already refunded")
-
-        if new_active_session:
-            try:
-                extend_response: dict[str, str] = await self.cinema_client.request(
-                    "POST", f"/reservation/{create_payment.group_id}/extend"
-                )
-
-                hold_expires_at = datetime.fromisoformat(extend_response["expires_at"])
-                stripe_session = datetime.now(UTC) + timedelta(
-                    minutes=settings.stripe_min_session_minutes
-                )
-
-                if hold_expires_at < stripe_session + timedelta(
-                    minutes=settings.buffer
-                ):
-                    raise ConflictException(
-                        "Reservation hold too short to start payment"
-                    )
-
-                stripe_expires_at = int(stripe_session.timestamp())
-
-                checkout_session = self.client.v1.checkout.sessions.create(
-                    params={
-                        "line_items": [
-                            {
-                                "price_data": {
-                                    "currency": currency,
-                                    "product_data": {
-                                        "name": f"Reservation {create_payment.group_id}"
-                                    },
-                                    "unit_amount": int(amount),
-                                },
-                                "quantity": 1,
-                            },
-                        ],
-                        "mode": "payment",
-                        "success_url": f"{settings.frontend_url}/booking/confirmation?session_id={{CHECKOUT_SESSION_ID}}",
-                        "metadata": {"group_id": str(create_payment.group_id)},
-                        "expires_at": stripe_expires_at,
-                        # Provide a name (for example, hosted_web_0001) to label this Checkout integration and measure its conversion independently
-                        "integration_identifier": "cinema-reservation-checkout",
-                    }
-                )
-
-                await self.repository.add(
-                    Payment(
-                        group_id=create_payment.group_id,
-                        user_id=user_id,
-                        amount=int(amount),
-                        currency=currency,
-                        status=Status.PENDING,
-                        stripe_session_id=checkout_session.id,
-                    )
-                )
-            except IntegrityError:
-                raise ConflictException("Payment already in progress")
-
-            except stripe.StripeError:
-                logger.exception("Stripe checkout session failed")
-                raise HTTPException(status_code=502, detail="Payment provider error")
+        except stripe.StripeError:
+            logger.exception("Stripe checkout session failed")
+            raise HTTPException(status_code=502, detail="Payment provider error")
 
         return CheckoutSessionRead(checkout_url=checkout_session.url)
 
@@ -209,8 +147,6 @@ class PaymentService:
 
                 if session_retrieve.status == "complete":
                     reservation_active.status = Status.COMPLETED
-                    await self._refund_payment(reservation_active)
-                    await self.repository.update(reservation_active)
 
                 if session_retrieve.status == "expired":
                     reservation_active.status = Status.FAILED
@@ -270,3 +206,78 @@ class PaymentService:
         except stripe.StripeError:
             logger.exception("Stripe refund failed")
             raise HTTPException(status_code=502, detail="Payment provider error")
+
+    async def _get_total(self, group_id: int) -> tuple[str, Decimal]:
+        response: dict[str, str] = await self.cinema_client.request(
+            "GET", f"/reservation/{group_id}/total"
+        )
+        currency = response["currency"]
+        amount = Decimal(response["total_price"]) * 100
+
+        return currency, amount
+
+    async def _handle_existing_payment(
+        self, group_id: int
+    ) -> CheckoutSessionRead | None:
+        reservation_active = await self.repository.get_by_active_group_id(group_id)
+
+        if reservation_active is not None:
+            if reservation_active.status == Status.PENDING:
+                checkout_active_session = self.client.v1.checkout.sessions.retrieve(
+                    reservation_active.stripe_session_id
+                )
+
+                if checkout_active_session.status == "expired":
+                    reservation_active.status = Status.FAILED
+                    await self.repository.update(reservation_active)
+
+                else:
+                    return CheckoutSessionRead(checkout_url=checkout_active_session.url)
+
+            elif reservation_active.status == Status.COMPLETED:
+                raise ConflictException("Reservation already paid")
+
+            elif reservation_active.status == Status.REFUNDED:
+                raise ConflictException("Reservation already refunded")
+
+        return None
+
+    async def _extend_hold(self, group_id: int) -> int:
+        extend_response: dict[str, str] = await self.cinema_client.request(
+            "POST", f"/reservation/{group_id}/extend"
+        )
+
+        hold_expires_at = datetime.fromisoformat(extend_response["expires_at"])
+        stripe_session = datetime.now(UTC) + timedelta(
+            minutes=settings.stripe_min_session_minutes
+        )
+
+        if hold_expires_at < stripe_session + timedelta(minutes=settings.buffer):
+            raise ConflictException("Reservation hold too short to start payment")
+
+        return int(stripe_session.timestamp())
+
+    async def _create_stripe_session(
+        self, group_id: int, currency: str, amount: Decimal, stripe_expires_at: int
+    ) -> stripe.checkout.Session:
+        checkout_session = self.client.v1.checkout.sessions.create(
+            params={
+                "line_items": [
+                    {
+                        "price_data": {
+                            "currency": currency,
+                            "product_data": {"name": f"Reservation {group_id}"},
+                            "unit_amount": int(amount),
+                        },
+                        "quantity": 1,
+                    },
+                ],
+                "mode": "payment",
+                "success_url": f"{settings.frontend_url}/booking/confirmation?session_id={{CHECKOUT_SESSION_ID}}",
+                "metadata": {"group_id": str(group_id)},
+                "expires_at": stripe_expires_at,
+                # Provide a name (for example, hosted_web_0001) to label this Checkout integration and measure its conversion independently
+                "integration_identifier": "cinema-reservation-checkout",
+            }
+        )
+        return checkout_session
